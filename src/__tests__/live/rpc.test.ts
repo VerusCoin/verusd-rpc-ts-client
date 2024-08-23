@@ -3,7 +3,7 @@ import { VerusdRpcInterface } from '../../index'
 jest.setTimeout(10000)
 
 describe('Makes live API Verusd RPC calls', () => {
-  const verusd = new VerusdRpcInterface("iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq", "http://127.0.0.1:8000")
+  const verusd = new VerusdRpcInterface("VRSCTEST", "http://foo:bar@127.0.0.1:18843")
 
   test('getaddressbalance', async () => {
     expect(
@@ -62,6 +62,26 @@ describe('Makes live API Verusd RPC calls', () => {
       ).error
     ).toBe(undefined);
   });
+
+  test('getidentitylog', async () => {
+      let k = await verusd.getIdentity("MnbvDemo2@")
+      console.log(k.result?.identity.contentmultimap)
+      console.log(k)
+  });
+
+  test('getidentitycontent', async () => {
+    expect(
+      (
+        await verusd.getIdentityContent("MnbvDemo2@")
+      ).error
+    ).toBe(undefined);
+  });
+
+  test('getidentitycontlog', async () => {
+    let k = await verusd.getIdentityContent("MnbvDemo2@")
+    console.log(k.result?.identity.contentmultimap)
+    console.log(k)
+});
 
   test('getinfo', async () => {
     expect(
