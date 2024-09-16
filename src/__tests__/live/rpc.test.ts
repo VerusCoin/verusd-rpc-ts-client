@@ -63,25 +63,13 @@ describe('Makes live API Verusd RPC calls', () => {
     ).toBe(undefined);
   });
 
-  test('getidentitylog', async () => {
-      let k = await verusd.getIdentity("MnbvDemo2@")
-      console.log(k.result?.identity.contentmultimap)
-      console.log(k)
-  });
-
   test('getidentitycontent', async () => {
     expect(
       (
-        await verusd.getIdentityContent("MnbvDemo2@")
+        await verusd.getIdentityContent("mike@")
       ).error
     ).toBe(undefined);
   });
-
-  test('getidentitycontlog', async () => {
-    let k = await verusd.getIdentityContent("MnbvDemo2@")
-    console.log(k.result?.identity.contentmultimap)
-    console.log(k)
-});
 
   test('getinfo', async () => {
     expect(
