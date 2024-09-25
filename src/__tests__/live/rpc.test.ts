@@ -83,7 +83,7 @@ describe('Makes live API Verusd RPC calls', () => {
     expect(
       (
         await verusd.getRawTransaction(
-          "676ccef766d808a3e7ab60a32226273a15bbce300db6ebea3b944b65043655cf"
+          "db97193d1a91f047cb14aa32a975be2e953924e1f4f0747cc20981edef6f4c28"
         )
       ).error
     ).toBe(undefined);
@@ -107,9 +107,9 @@ describe('Makes live API Verusd RPC calls', () => {
 
   test("estimateconversion", async () => {
     expect((await verusd.estimateConversion({
-      "currency": "BrandDisc", 
-      "convertto": "brand32", 
-      "via": "BrandWeight", 
+      "currency": "VRSCTEST",
+      "convertto": "USD",
+      "via": "VRSC-USD", 
       "amount": 10
     })).error).toBe(undefined);
   });
