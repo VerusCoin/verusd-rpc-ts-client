@@ -3,7 +3,7 @@ import { VerusdRpcInterface } from '../../index'
 jest.setTimeout(10000)
 
 describe('Makes live API Verusd RPC calls', () => {
-  const verusd = new VerusdRpcInterface("VRSCTEST", "http://foo:bar@127.0.0.1:18843")
+  const verusd = new VerusdRpcInterface("iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq", "http://127.0.0.1:8000")
 
   test('getaddressbalance', async () => {
     expect(
