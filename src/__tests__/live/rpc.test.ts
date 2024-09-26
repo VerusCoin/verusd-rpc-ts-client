@@ -63,6 +63,14 @@ describe('Makes live API Verusd RPC calls', () => {
     ).toBe(undefined);
   });
 
+  test('getidentitycontent', async () => {
+    expect(
+      (
+        await verusd.getIdentityContent("mike@")
+      ).error
+    ).toBe(undefined);
+  });
+
   test('getinfo', async () => {
     expect(
       (

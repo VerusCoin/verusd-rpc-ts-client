@@ -6,6 +6,7 @@ import {
   GetAddressUtxosRequest,
   GetBlockRequest,
   GetIdentityRequest,
+  GetIdentityContentRequest,
   GetInfoRequest,
   GetOffersRequest,
   GetRawTransactionRequest,
@@ -164,6 +165,10 @@ class VerusdRpcInterface {
 
   getIdentity(...args: ConstructorParametersAfterFirst<typeof GetIdentityRequest>) {
     return this.request<GetIdentityResponse["result"]>(new GetIdentityRequest(this.chain, ...args));
+  }
+
+  getIdentityContent(...args: ConstructorParametersAfterFirst<typeof GetIdentityContentRequest>) {
+    return this.request<GetIdentityResponse["result"]>(new GetIdentityContentRequest(this.chain, ...args));
   }
 
   getCurrency(...args: ConstructorParametersAfterFirst<typeof GetCurrencyRequest>) {
