@@ -38,7 +38,9 @@ import {
   ListCurrenciesRequest,
   ListCurrenciesResponse,
   EstimateConversionRequest,
-  EstimateConversionResponse
+  EstimateConversionResponse,
+  ZGetOperationStatusRequest,
+  ZGetOperationStatusResponse
 } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst, RemoveFirstFromTuple } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult, RpcRequestResultError, RpcRequestResultSuccess } from "./types/RpcRequest";
@@ -227,6 +229,10 @@ class VerusdRpcInterface {
     return this.request<EstimateConversionResponse["result"]>(
       new EstimateConversionRequest(this.chain, ...args)
     );
+  }
+
+  zGetOperationStatus(...args: ConstructorParametersAfterFirst<typeof ZGetOperationStatusRequest>) {
+    return this.request<ZGetOperationStatusResponse["result"]>(new ZGetOperationStatusRequest(this.chain, ...args));
   }
 
   static extractRpcResult<D extends ApiResponse>(res: RpcRequestResult<D["result"]>): D["result"] {
