@@ -404,7 +404,12 @@ class VerusdRpcInterface {
       await this.getCachedCurrency(this.chain)
     ))
 
-    const fractionalSource = checkFlag(src.options, IS_FRACTIONAL_FLAG) && (src.systemid === currChainDefinition.currencyid);
+    const gatewayConverterSource = checkFlag(src.options, IS_GATEWAY_CONVERTER_FLAG);
+    const fractionalSource = 
+      checkFlag(src.options, IS_FRACTIONAL_FLAG) && 
+      (src.currencies.includes(currChainDefinition.currencyid)) &&
+      (src.systemid === currChainDefinition.currencyid || gatewayConverterSource);
+
     const paths = VerusdRpcInterface.extractRpcResult<GetCurrencyConvertersResponse>(
       await this.getCachedCurrencyConverters(dest == null ? [src.currencyid] : [src.currencyid, dest!.currencyid])
     )
