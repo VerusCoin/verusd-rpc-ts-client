@@ -62,6 +62,12 @@ describe('Makes live API Verusd RPC calls', () => {
     expect(!!(await verusd.getBlock("1")).error).toBe(false);
   });
 
+  test("getblockcount", async () => {
+    const res = await verusd.getBlockCount();
+    expect(!!res.error).toBe(false);
+    expect(res.result).toBeGreaterThanOrEqual(0);
+  });
+
   test('getidentity', async () => {
     expect(
       !!(

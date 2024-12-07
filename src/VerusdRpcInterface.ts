@@ -5,6 +5,7 @@ import {
   GetAddressDeltasRequest,
   GetAddressUtxosRequest,
   GetBlockRequest,
+  GetBlockCountRequest,
   GetIdentityRequest,
   GetIdentityContentRequest,
   GetInfoRequest,
@@ -17,6 +18,7 @@ import {
   GetAddressDeltasResponse,
   GetAddressUtxosResponse,
   GetBlockResponse,
+  GetBlockCountResponse,
   GetIdentityResponse,
   GetCurrencyResponse,
   GetInfoResponse,
@@ -165,6 +167,10 @@ class VerusdRpcInterface {
 
   getBlock(...args: ConstructorParametersAfterFirst<typeof GetBlockRequest>) {
     return this.request<GetBlockResponse["result"]>(new GetBlockRequest(this.chain, ...args));
+  }
+
+  getBlockCount(...args: ConstructorParametersAfterFirst<typeof GetBlockCountRequest>) {
+    return this.request<GetBlockCountResponse["result"]>(new GetBlockCountRequest(this.chain, ...args));
   }
 
   getVdxfId(...args: ConstructorParametersAfterFirst<typeof GetVdxfIdRequest>) {
