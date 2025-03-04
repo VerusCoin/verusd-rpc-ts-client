@@ -40,7 +40,9 @@ import {
   EstimateConversionRequest,
   EstimateConversionResponse,
   ZGetOperationStatusRequest,
-  ZGetOperationStatusResponse
+  ZGetOperationStatusResponse,
+  UpdateIdentityRequest,
+  UpdateIdentityResponse
 } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst, RemoveFirstFromTuple } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult, RpcRequestResultError, RpcRequestResultSuccess } from "./types/RpcRequest";
@@ -210,6 +212,12 @@ class VerusdRpcInterface {
   sendCurrency(...args: ConstructorParametersAfterFirst<typeof SendCurrencyRequest>) {
     return this.request<SendCurrencyResponse["result"]>(
       new SendCurrencyRequest(this.chain, ...args)
+    );
+  }
+
+  updateIdentity(...args: ConstructorParametersAfterFirst<typeof UpdateIdentityRequest>) {
+    return this.request<UpdateIdentityResponse["result"]>(
+      new UpdateIdentityRequest(this.chain, ...args)
     );
   }
 
