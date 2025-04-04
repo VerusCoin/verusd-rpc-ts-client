@@ -2917,7 +2917,7 @@ v8-to-istanbul@^9.0.1:
 
 "verus-typescript-primitives@git+https://github.com/michaeltout/verus-typescript-primitives.git#identity-update-request":
   version "1.0.0"
-  resolved "git+https://github.com/michaeltout/verus-typescript-primitives.git#94d1aa4a61e4fb272639827fa48c884db2ba346c"
+  resolved "git+https://github.com/michaeltout/verus-typescript-primitives.git#18241f51cd456cb97a4e6a46bf9b9099d1983624"
   dependencies:
     base64url "3.0.1"
     bech32 "2.0.0"
