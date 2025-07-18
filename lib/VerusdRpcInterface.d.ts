@@ -1,5 +1,5 @@
 import { AxiosInstance, AxiosRequestConfig } from "axios";
-import { GetAddressBalanceRequest, ApiRequest, GetAddressDeltasRequest, GetAddressUtxosRequest, GetBlockRequest, GetIdentityRequest, GetIdentityContentRequest, GetInfoRequest, GetOffersRequest, GetRawTransactionRequest, MakeOfferRequest, SendRawTransactionRequest, GetCurrencyRequest, GetAddressMempoolRequest, GetVdxfIdRequest, FundRawTransactionRequest, SendCurrencyRequest, GetCurrencyConvertersRequest, CurrencyDefinition, ApiResponse, ListCurrenciesRequest, EstimateConversionRequest, ZGetOperationStatusRequest, UpdateIdentityRequest, SignDataRequest } from "verus-typescript-primitives";
+import { GetAddressBalanceRequest, ApiRequest, GetAddressDeltasRequest, GetAddressUtxosRequest, GetBlockRequest, GetIdentityRequest, GetIdentityContentRequest, GetInfoRequest, GetOffersRequest, GetRawTransactionRequest, MakeOfferRequest, SendRawTransactionRequest, GetCurrencyRequest, GetAddressMempoolRequest, GetVdxfIdRequest, FundRawTransactionRequest, SignRawTransactionRequest, SendCurrencyRequest, GetCurrencyConvertersRequest, CurrencyDefinition, ApiResponse, ListCurrenciesRequest, EstimateConversionRequest, ZGetOperationStatusRequest } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult } from "./types/RpcRequest";
 declare type Convertable = {
@@ -182,6 +182,17 @@ declare class VerusdRpcInterface {
         changepos: number;
         fee: number;
     }, any>>;
+    signRawTransaction(...args: ConstructorParametersAfterFirst<typeof SignRawTransactionRequest>): Promise<RpcRequestResult<{
+        hex: string;
+        complete: boolean;
+        errors?: {
+            txid: string;
+            vout: number;
+            scriptSig: string;
+            sequence: number;
+            error: string;
+        }[] | undefined;
+    }, any>>;
     sendCurrency(...args: ConstructorParametersAfterFirst<typeof SendCurrencyRequest>): Promise<RpcRequestResult<string | {
         outputtotals: {
             [currencyid: string]: number;
@@ -189,7 +200,6 @@ declare class VerusdRpcInterface {
         feeamount: number;
         hextx: string;
     }, any>>;
-    updateIdentity(...args: ConstructorParametersAfterFirst<typeof UpdateIdentityRequest>): Promise<RpcRequestResult<string, any>>;
     getCurrencyConverters(...args: ConstructorParametersAfterFirst<typeof GetCurrencyConvertersRequest>): Promise<RpcRequestResult<{
         [key: string]: CurrencyDefinition;
     }[], any>>;
@@ -266,23 +276,6 @@ declare class VerusdRpcInterface {
         };
     }, any>>;
     zGetOperationStatus(...args: ConstructorParametersAfterFirst<typeof ZGetOperationStatusRequest>): Promise<RpcRequestResult<import("verus-typescript-primitives/dist/api/classes/ZGetOperationStatus/ZGetOperationStatusResponse").z_operation[], any>>;
-    signData(...args: ConstructorParametersAfterFirst<typeof SignDataRequest>): Promise<RpcRequestResult<{
-        mmrdescriptor_encrypted?: import("verus-typescript-primitives/dist/utils/types/MmrDescriptor").MmrDescriptorParameters | undefined;
-        mmrdescriptor?: import("verus-typescript-primitives/dist/utils/types/MmrDescriptor").MmrDescriptorParameters | undefined;
-        signature?: string | undefined;
-        signaturedata_encrypted?: import("verus-typescript-primitives/dist/utils/types/DataDescriptor").DataDescriptorInfo | undefined;
-        signaturedata_ssk?: string | undefined;
-        signaturedata?: import("verus-typescript-primitives/dist/utils/types/Signature").SignatureDataInfo | undefined;
-        system?: string | undefined;
-        systemid?: string | undefined;
-        hashtype?: string | undefined;
-        mmrhashtype?: string | undefined;
-        hash?: string | undefined;
-        identity?: string | undefined;
-        canonicalname?: string | undefined;
-        address?: string | undefined;
-        signatureheight?: number | undefined;
-    }, any>>;
     static extractRpcResult<D extends ApiResponse>(res: RpcRequestResult<D["result"]>): D["result"];
     private getCachedCurrency;
     private getCachedInfo;

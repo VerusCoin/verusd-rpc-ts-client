@@ -29,6 +29,8 @@ import {
   GetVdxfIdResponse,
   FundRawTransactionRequest,
   FundRawTransactionResponse,
+  SignRawTransactionRequest,
+  SignRawTransactionResponse,
   SendCurrencyRequest,
   SendCurrencyResponse,
   GetCurrencyConvertersRequest,
@@ -40,11 +42,7 @@ import {
   EstimateConversionRequest,
   EstimateConversionResponse,
   ZGetOperationStatusRequest,
-  ZGetOperationStatusResponse,
-  UpdateIdentityRequest,
-  UpdateIdentityResponse,
-  SignDataRequest,
-  SignDataResponse
+  ZGetOperationStatusResponse
 } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst, RemoveFirstFromTuple } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult, RpcRequestResultError, RpcRequestResultSuccess } from "./types/RpcRequest";
@@ -211,15 +209,15 @@ class VerusdRpcInterface {
     );
   }
 
-  sendCurrency(...args: ConstructorParametersAfterFirst<typeof SendCurrencyRequest>) {
-    return this.request<SendCurrencyResponse["result"]>(
-      new SendCurrencyRequest(this.chain, ...args)
+  signRawTransaction(...args: ConstructorParametersAfterFirst<typeof SignRawTransactionRequest>) {
+    return this.request<SignRawTransactionResponse["result"]>(
+      new SignRawTransactionRequest(this.chain, ...args)
     );
   }
 
-  updateIdentity(...args: ConstructorParametersAfterFirst<typeof UpdateIdentityRequest>) {
-    return this.request<UpdateIdentityResponse["result"]>(
-      new UpdateIdentityRequest(this.chain, ...args)
+  sendCurrency(...args: ConstructorParametersAfterFirst<typeof SendCurrencyRequest>) {
+    return this.request<SendCurrencyResponse["result"]>(
+      new SendCurrencyRequest(this.chain, ...args)
     );
   }
 
@@ -243,10 +241,6 @@ class VerusdRpcInterface {
 
   zGetOperationStatus(...args: ConstructorParametersAfterFirst<typeof ZGetOperationStatusRequest>) {
     return this.request<ZGetOperationStatusResponse["result"]>(new ZGetOperationStatusRequest(this.chain, ...args));
-  }
-
-  signData(...args: ConstructorParametersAfterFirst<typeof SignDataRequest>) {
-    return this.request<SignDataResponse["result"]>(new SignDataRequest(this.chain, ...args));
   }
 
   static extractRpcResult<D extends ApiResponse>(res: RpcRequestResult<D["result"]>): D["result"] {
