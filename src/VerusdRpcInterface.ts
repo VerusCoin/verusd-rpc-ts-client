@@ -29,6 +29,8 @@ import {
   GetVdxfIdResponse,
   FundRawTransactionRequest,
   FundRawTransactionResponse,
+  SignRawTransactionRequest,
+  SignRawTransactionResponse,
   SendCurrencyRequest,
   SendCurrencyResponse,
   GetCurrencyConvertersRequest,
@@ -40,7 +42,9 @@ import {
   EstimateConversionRequest,
   EstimateConversionResponse,
   ZGetOperationStatusRequest,
-  ZGetOperationStatusResponse
+  ZGetOperationStatusResponse,
+  SignDataRequest,
+  SignDataResponse
 } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst, RemoveFirstFromTuple } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult, RpcRequestResultError, RpcRequestResultSuccess } from "./types/RpcRequest";
@@ -207,6 +211,12 @@ class VerusdRpcInterface {
     );
   }
 
+  signRawTransaction(...args: ConstructorParametersAfterFirst<typeof SignRawTransactionRequest>) {
+    return this.request<SignRawTransactionResponse["result"]>(
+      new SignRawTransactionRequest(this.chain, ...args)
+    );
+  }
+
   sendCurrency(...args: ConstructorParametersAfterFirst<typeof SendCurrencyRequest>) {
     return this.request<SendCurrencyResponse["result"]>(
       new SendCurrencyRequest(this.chain, ...args)
@@ -233,6 +243,10 @@ class VerusdRpcInterface {
 
   zGetOperationStatus(...args: ConstructorParametersAfterFirst<typeof ZGetOperationStatusRequest>) {
     return this.request<ZGetOperationStatusResponse["result"]>(new ZGetOperationStatusRequest(this.chain, ...args));
+  }
+
+  signData(...args: ConstructorParametersAfterFirst<typeof SignDataRequest>) {
+    return this.request<SignDataResponse["result"]>(new SignDataRequest(this.chain, ...args));
   }
 
   static extractRpcResult<D extends ApiResponse>(res: RpcRequestResult<D["result"]>): D["result"] {

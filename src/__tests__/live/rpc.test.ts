@@ -129,6 +129,13 @@ describe('Makes live API Verusd RPC calls', () => {
     })).error).toBe(false);
   });
 
+  test("signdata", async () => {
+    expect(!!(await verusd.signData({
+      address: "t10@",
+      datahash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    })).error).toBe(false);
+  });
+
   test("getcurrencyconversionpaths", async () => {
     const VRSCTEST = (await verusd.getCurrency("VRSCTEST")).result
     const paths = await verusd.getCurrencyConversionPaths(VRSCTEST!)
