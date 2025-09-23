@@ -53,6 +53,7 @@
     "word-wrap": "1.2.4",
     "semver": "7.5.2",
     "micromatch": "4.0.8",
-    "braces": "3.0.3"
+    "braces": "3.0.3",
+    "b4a": "1.6.7"
   }
 }
