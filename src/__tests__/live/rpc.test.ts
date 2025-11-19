@@ -136,6 +136,10 @@ describe('Makes live API Verusd RPC calls', () => {
     })).error).toBe(false);
   });
 
+  test("updateidentity", async () => {
+    expect(!!(await verusd.updateIdentity({ "name": "t10" }, true)).error).toBe(false);
+  });
+
   test("getcurrencyconversionpaths", async () => {
     const VRSCTEST = (await verusd.getCurrency("VRSCTEST")).result
     const paths = await verusd.getCurrencyConversionPaths(VRSCTEST!)
