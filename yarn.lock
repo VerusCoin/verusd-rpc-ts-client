@@ -3131,7 +3131,7 @@ v8-to-istanbul@^9.0.1:
 
 "verus-typescript-primitives@git+https://github.com/michaeltout/verus-typescript-primitives.git#generic-signed-request":
   version "1.0.0"
-  resolved "git+https://github.com/michaeltout/verus-typescript-primitives.git#77faa1637512a53f0ba915d100641305b5a7b686"
+  resolved "git+https://github.com/michaeltout/verus-typescript-primitives.git#deb6b213499fc0ba1ecf52328b4e5184acacadfd"
   dependencies:
     base64url "3.0.1"
     bech32 "2.0.0"
