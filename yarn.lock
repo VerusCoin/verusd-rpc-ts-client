@@ -3131,7 +3131,7 @@ v8-to-istanbul@^9.0.1:
 
 "verus-typescript-primitives@git+https://github.com/michaeltout/verus-typescript-primitives.git#generic-signed-request":
   version "1.0.0"
-  resolved "git+https://github.com/michaeltout/verus-typescript-primitives.git#36095866d7e2dc684afbae13ca1d3c74cb105e4d"
+  resolved "git+https://github.com/michaeltout/verus-typescript-primitives.git#77faa1637512a53f0ba915d100641305b5a7b686"
   dependencies:
     base64url "3.0.1"
     bech32 "2.0.0"
@@ -3148,9 +3148,9 @@ walker@^1.0.8:
     makeerror "1.0.12"
 
 which-typed-array@^1.1.16:
-  version "1.1.19"
-  resolved "https://registry.yarnpkg.com/which-typed-array/-/which-typed-array-1.1.19.tgz#df03842e870b6b88e117524a4b364b6fc689f956"
-  integrity sha512-rEvr90Bck4WZt9HHFC4DJMsjvu7x+r6bImz0/BrbWb7A2djJ8hnZMrWnHo9F8ssv0OMErasDhftrfROTyqSDrw==
+  version "1.1.20"
+  resolved "https://registry.yarnpkg.com/which-typed-array/-/which-typed-array-1.1.20.tgz#3fdb7adfafe0ea69157b1509f3a1cd892bd1d122"
+  integrity sha512-LYfpUkmqwl0h9A2HL09Mms427Q1RZWuOHsukfVcKRq9q95iQxdw0ix1JQrqbcDR9PH1QDwf5Qo8OZb5lksZ8Xg==
   dependencies:
     available-typed-arrays "^1.0.7"
     call-bind "^1.0.8"
