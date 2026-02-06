@@ -20,4 +20,4 @@ export interface RpcRequestResultError<T = any> {
     result: null;
     error: RpcError;
 }
-export declare type RpcRequestResult<D = ApiPrimitive, T = any> = RpcRequestResultSuccess<D, T> | RpcRequestResultError<T>;
+export type RpcRequestResult<D = ApiPrimitive, T = any> = RpcRequestResultSuccess<D, T> | RpcRequestResultError<T>;

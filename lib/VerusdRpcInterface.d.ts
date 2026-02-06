@@ -2,7 +2,7 @@ import { AxiosInstance, AxiosRequestConfig } from "axios";
 import { GetAddressBalanceRequest, ApiRequest, GetAddressDeltasRequest, GetAddressUtxosRequest, GetBlockRequest, GetIdentityRequest, GetIdentityContentRequest, GetInfoRequest, GetOffersRequest, GetRawTransactionRequest, MakeOfferRequest, SendRawTransactionRequest, GetCurrencyRequest, GetAddressMempoolRequest, GetVdxfIdRequest, FundRawTransactionRequest, SignRawTransactionRequest, SendCurrencyRequest, GetCurrencyConvertersRequest, CurrencyDefinition, ApiResponse, ListCurrenciesRequest, EstimateConversionRequest, ZGetOperationStatusRequest, SignDataRequest, UpdateIdentityRequest } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult } from "./types/RpcRequest";
-declare type Convertable = {
+type Convertable = {
     via?: CurrencyDefinition;
     destination: CurrencyDefinition;
     exportto?: CurrencyDefinition;
@@ -11,7 +11,7 @@ declare type Convertable = {
     destpriceinvia?: number;
     gateway: boolean;
 };
-declare type Convertables = {
+type Convertables = {
     [key: string]: Array<Convertable>;
 };
 declare class VerusdRpcInterface {
@@ -36,8 +36,8 @@ declare class VerusdRpcInterface {
         };
         currencynames?: {
             [key: string]: string;
-        } | undefined;
-    }, any>>;
+        };
+    }>>;
     getAddressDeltas(...args: ConstructorParametersAfterFirst<typeof GetAddressDeltasRequest>): Promise<RpcRequestResult<{
         satoshis: number;
         txid: string;
@@ -51,16 +51,16 @@ declare class VerusdRpcInterface {
         blocktime?: number | undefined;
         currencynames?: {
             [key: string]: string;
-        } | undefined;
+        };
         sent?: {
-            outputs: {
-                addresses: string | string[];
+            outputs: Array<{
+                addresses: string | Array<string>;
                 amounts: {
                     [key: string]: number;
                 };
-            }[];
-        } | undefined;
-    }[], any>>;
+            }>;
+        };
+    }[]>>;
     getAddressMempool(...args: ConstructorParametersAfterFirst<typeof GetAddressMempoolRequest>): Promise<RpcRequestResult<{
         satoshis: number;
         txid: string;
@@ -70,19 +70,19 @@ declare class VerusdRpcInterface {
         address: string;
         currencyvalues?: {
             [key: string]: number;
-        } | undefined;
+        };
         currencynames?: {
             [key: string]: string;
-        } | undefined;
+        };
         sent?: {
-            outputs: {
-                addresses: string | string[];
+            outputs: Array<{
+                addresses: string | Array<string>;
                 amounts: {
                     [key: string]: number;
                 };
-            }[];
-        } | undefined;
-    }[], any>>;
+            }>;
+        };
+    }[]>>;
     getAddressUtxos(...args: ConstructorParametersAfterFirst<typeof GetAddressUtxosRequest>): Promise<RpcRequestResult<{
         address: string;
         txid: string;
@@ -90,16 +90,16 @@ declare class VerusdRpcInterface {
         script: string;
         currencyvalues?: {
             [key: string]: number | undefined;
-        } | undefined;
+        };
         currencynames?: {
             [key: string]: string | undefined;
-        } | undefined;
+        };
         satoshis: number;
         height: number;
         isspendable: number;
         blocktime: number;
-    }[], any>>;
-    getBlock(...args: ConstructorParametersAfterFirst<typeof GetBlockRequest>): Promise<RpcRequestResult<string | import("verus-typescript-primitives/dist/block/BlockInfo").BlockInfo, any>>;
+    }[]>>;
+    getBlock(...args: ConstructorParametersAfterFirst<typeof GetBlockRequest>): Promise<RpcRequestResult<string | import("verus-typescript-primitives/dist/block/BlockInfo").BlockInfo>>;
     getVdxfId(...args: ConstructorParametersAfterFirst<typeof GetVdxfIdRequest>): Promise<RpcRequestResult<{
         vdxfid: string;
         hash160result: string;
@@ -111,8 +111,8 @@ declare class VerusdRpcInterface {
             vdxfkey: string;
             uint256: string;
             indexnum: string;
-        } | undefined;
-    }, any>>;
+        };
+    }>>;
     getIdentity(...args: ConstructorParametersAfterFirst<typeof GetIdentityRequest>): Promise<RpcRequestResult<{
         identity: import("verus-typescript-primitives").IdentityDefinition;
         status: string;
@@ -121,8 +121,8 @@ declare class VerusdRpcInterface {
         blockheight: number;
         txid: string;
         vout: number;
-        proof?: string | undefined;
-    }, any>>;
+        proof?: string;
+    }>>;
     getIdentityContent(...args: ConstructorParametersAfterFirst<typeof GetIdentityContentRequest>): Promise<RpcRequestResult<{
         identity: import("verus-typescript-primitives").IdentityDefinition;
         status: string;
@@ -131,9 +131,9 @@ declare class VerusdRpcInterface {
         blockheight: number;
         txid: string;
         vout: number;
-        proof?: string | undefined;
-    }, any>>;
-    getCurrency(...args: ConstructorParametersAfterFirst<typeof GetCurrencyRequest>): Promise<RpcRequestResult<CurrencyDefinition, any>>;
+        proof?: string;
+    }>>;
+    getCurrency(...args: ConstructorParametersAfterFirst<typeof GetCurrencyRequest>): Promise<RpcRequestResult<CurrencyDefinition>>;
     getInfo(...args: ConstructorParametersAfterFirst<typeof GetInfoRequest>): Promise<RpcRequestResult<{
         version: number;
         protocolversion: number;
@@ -168,57 +168,57 @@ declare class VerusdRpcInterface {
         decay: string;
         endsubsidy: string;
         veruspos: number;
-        chainid?: string | undefined;
-        notarychainid?: string | undefined;
-    }, any>>;
-    getOffers(...args: ConstructorParametersAfterFirst<typeof GetOffersRequest>): Promise<RpcRequestResult<import("verus-typescript-primitives/dist/offers/OfferList").OfferList, any>>;
-    getRawTransaction(...args: ConstructorParametersAfterFirst<typeof GetRawTransactionRequest>): Promise<RpcRequestResult<string | import("verus-typescript-primitives/dist/transaction/RawTransaction").RawTransaction, any>>;
+        chainid?: string;
+        notarychainid?: string;
+    }>>;
+    getOffers(...args: ConstructorParametersAfterFirst<typeof GetOffersRequest>): Promise<RpcRequestResult<import("verus-typescript-primitives/dist/offers/OfferList").OfferList>>;
+    getRawTransaction(...args: ConstructorParametersAfterFirst<typeof GetRawTransactionRequest>): Promise<RpcRequestResult<string | import("verus-typescript-primitives/dist/transaction/RawTransaction").RawTransaction>>;
     makeOffer(...args: ConstructorParametersAfterFirst<typeof MakeOfferRequest>): Promise<RpcRequestResult<{
-        txid?: string | undefined;
-        hex?: string | undefined;
-    }, any>>;
-    sendRawTransaction(...args: ConstructorParametersAfterFirst<typeof SendRawTransactionRequest>): Promise<RpcRequestResult<string | import("verus-typescript-primitives/dist/transaction/RawTransaction").RawTransaction, any>>;
+        txid?: string;
+        hex?: string;
+    }>>;
+    sendRawTransaction(...args: ConstructorParametersAfterFirst<typeof SendRawTransactionRequest>): Promise<RpcRequestResult<string | import("verus-typescript-primitives/dist/transaction/RawTransaction").RawTransaction>>;
     fundRawTransaction(...args: ConstructorParametersAfterFirst<typeof FundRawTransactionRequest>): Promise<RpcRequestResult<{
         hex: string;
         changepos: number;
         fee: number;
-    }, any>>;
+    }>>;
     signRawTransaction(...args: ConstructorParametersAfterFirst<typeof SignRawTransactionRequest>): Promise<RpcRequestResult<{
         hex: string;
         complete: boolean;
-        errors?: {
+        errors?: Array<{
             txid: string;
             vout: number;
             scriptSig: string;
             sequence: number;
             error: string;
-        }[] | undefined;
-    }, any>>;
+        }>;
+    }>>;
     sendCurrency(...args: ConstructorParametersAfterFirst<typeof SendCurrencyRequest>): Promise<RpcRequestResult<string | {
         outputtotals: {
             [currencyid: string]: number;
         };
         feeamount: number;
         hextx: string;
-    }, any>>;
+    }>>;
     getCurrencyConverters(...args: ConstructorParametersAfterFirst<typeof GetCurrencyConvertersRequest>): Promise<RpcRequestResult<{
         [key: string]: CurrencyDefinition;
-    }[], any>>;
+    }[]>>;
     listCurrencies(...args: ConstructorParametersAfterFirst<typeof ListCurrenciesRequest>): Promise<RpcRequestResult<{
         currencydefinition: CurrencyDefinition;
-        bestheight?: number | undefined;
-        besttxid?: string | undefined;
-        besttxout?: number | undefined;
+        bestheight?: number;
+        besttxid?: string;
+        besttxout?: number;
         bestcurrencystate?: {
             flags: number;
             version: number;
             currencyid: string;
-            reservecurrencies: {
+            reservecurrencies: Array<{
                 currencyid: string;
                 weight: number;
                 reserves: number;
                 priceinreserve: number;
-            }[];
+            }>;
             initialsupply: number;
             emitted: number;
             supply: number;
@@ -238,8 +238,8 @@ declare class VerusdRpcInterface {
             primarycurrencyconversionfees: number;
             primarycurrencyout: number;
             preconvertedout: number;
-        } | undefined;
-    }[], any>>;
+        };
+    }[]>>;
     estimateConversion(...args: ConstructorParametersAfterFirst<typeof EstimateConversionRequest>): Promise<RpcRequestResult<{
         estimatedcurrencyout: number;
         inputcurrencyid: string;
@@ -266,17 +266,17 @@ declare class VerusdRpcInterface {
             primarycurrencyconversionfees: number;
             primarycurrencyfees: number;
             primarycurrencyout: number;
-            reservecurrencies: {
+            reservecurrencies: Array<{
                 currencyid: string;
                 priceinreserve: number;
                 reserves: number;
                 weight: number;
-            }[];
+            }>;
             supply: number;
             version: number;
         };
-    }, any>>;
-    zGetOperationStatus(...args: ConstructorParametersAfterFirst<typeof ZGetOperationStatusRequest>): Promise<RpcRequestResult<import("verus-typescript-primitives/dist/api/classes/ZGetOperationStatus/ZGetOperationStatusResponse").z_operation[], any>>;
+    }>>;
+    zGetOperationStatus(...args: ConstructorParametersAfterFirst<typeof ZGetOperationStatusRequest>): Promise<RpcRequestResult<import("verus-typescript-primitives/dist/api/classes/ZGetOperationStatus/ZGetOperationStatusResponse").z_operation[]>>;
     signData(...args: ConstructorParametersAfterFirst<typeof SignDataRequest>): Promise<RpcRequestResult<{
         mmrdescriptor_encrypted?: import("verus-typescript-primitives/dist/utils/types/MmrDescriptor").MmrDescriptorParameters | undefined;
         mmrdescriptor?: import("verus-typescript-primitives/dist/utils/types/MmrDescriptor").MmrDescriptorParameters | undefined;
