@@ -47,8 +47,8 @@ declare class VerusdRpcInterface {
         address: string;
         currencyvalues?: {
             [key: string]: number;
-        } | undefined;
-        blocktime?: number | undefined;
+        };
+        blocktime?: number;
         currencynames?: {
             [key: string]: string;
         };
@@ -278,23 +278,23 @@ declare class VerusdRpcInterface {
     }>>;
     zGetOperationStatus(...args: ConstructorParametersAfterFirst<typeof ZGetOperationStatusRequest>): Promise<RpcRequestResult<import("verus-typescript-primitives/dist/api/classes/ZGetOperationStatus/ZGetOperationStatusResponse").z_operation[]>>;
     signData(...args: ConstructorParametersAfterFirst<typeof SignDataRequest>): Promise<RpcRequestResult<{
-        mmrdescriptor_encrypted?: import("verus-typescript-primitives/dist/utils/types/MmrDescriptor").MmrDescriptorParameters | undefined;
-        mmrdescriptor?: import("verus-typescript-primitives/dist/utils/types/MmrDescriptor").MmrDescriptorParameters | undefined;
-        signature?: string | undefined;
-        signaturedata_encrypted?: import("verus-typescript-primitives/dist/utils/types/DataDescriptor").DataDescriptorInfo | undefined;
-        signaturedata_ssk?: string | undefined;
-        signaturedata?: import("verus-typescript-primitives/dist/utils/types/Signature").SignatureDataInfo | undefined;
-        system?: string | undefined;
-        systemid?: string | undefined;
-        hashtype?: string | undefined;
-        mmrhashtype?: string | undefined;
-        hash?: string | undefined;
-        identity?: string | undefined;
-        canonicalname?: string | undefined;
-        address?: string | undefined;
-        signatureheight?: number | undefined;
-    }, any>>;
-    updateIdentity(...args: ConstructorParametersAfterFirst<typeof UpdateIdentityRequest>): Promise<RpcRequestResult<string, any>>;
+        mmrdescriptor_encrypted?: import("verus-typescript-primitives/dist/utils/types/MmrDescriptor").MmrDescriptorParameters;
+        mmrdescriptor?: import("verus-typescript-primitives/dist/utils/types/MmrDescriptor").MmrDescriptorParameters;
+        signature?: string;
+        signaturedata_encrypted?: import("verus-typescript-primitives/dist/utils/types/DataDescriptor").DataDescriptorInfo;
+        signaturedata_ssk?: string;
+        signaturedata?: import("verus-typescript-primitives/dist/utils/types/Signature").SignatureDataInfo;
+        system?: string;
+        systemid?: string;
+        hashtype?: string;
+        mmrhashtype?: string;
+        hash?: string;
+        identity?: string;
+        canonicalname?: string;
+        address?: string;
+        signatureheight?: number;
+    }>>;
+    updateIdentity(...args: ConstructorParametersAfterFirst<typeof UpdateIdentityRequest>): Promise<RpcRequestResult<string>>;
     static extractRpcResult<D extends ApiResponse>(res: RpcRequestResult<D["result"]>): D["result"];
     private getCachedCurrency;
     private getCachedInfo;
