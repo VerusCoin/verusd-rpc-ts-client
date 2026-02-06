@@ -48,6 +48,7 @@ declare class VerusdRpcInterface {
         currencyvalues?: {
             [key: string]: number;
         } | undefined;
+        blocktime?: number | undefined;
         currencynames?: {
             [key: string]: string;
         } | undefined;
