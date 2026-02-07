@@ -1,5 +1,5 @@
 import { AxiosInstance, AxiosRequestConfig } from "axios";
-import { GetAddressBalanceRequest, ApiRequest, GetAddressDeltasRequest, GetAddressUtxosRequest, GetBlockRequest, GetIdentityRequest, GetIdentityContentRequest, GetInfoRequest, GetOffersRequest, GetRawTransactionRequest, MakeOfferRequest, SendRawTransactionRequest, GetCurrencyRequest, GetAddressMempoolRequest, GetVdxfIdRequest, FundRawTransactionRequest, SignRawTransactionRequest, SendCurrencyRequest, GetCurrencyConvertersRequest, CurrencyDefinition, ApiResponse, ListCurrenciesRequest, EstimateConversionRequest, ZGetOperationStatusRequest, SignDataRequest, UpdateIdentityRequest } from "verus-typescript-primitives";
+import { GetAddressBalanceRequest, ApiRequest, GetAddressDeltasRequest, GetAddressUtxosRequest, GetBlockRequest, GetBlockCountRequest, GetIdentityRequest, GetIdentityContentRequest, GetInfoRequest, GetOffersRequest, GetRawTransactionRequest, MakeOfferRequest, SendRawTransactionRequest, GetCurrencyRequest, GetAddressMempoolRequest, GetVdxfIdRequest, FundRawTransactionRequest, SignRawTransactionRequest, SendCurrencyRequest, GetCurrencyConvertersRequest, CurrencyDefinition, ApiResponse, ListCurrenciesRequest, EstimateConversionRequest, ZGetOperationStatusRequest, SignDataRequest, UpdateIdentityRequest } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult } from "./types/RpcRequest";
 type Convertable = {
@@ -100,6 +100,7 @@ declare class VerusdRpcInterface {
         blocktime: number;
     }[]>>;
     getBlock(...args: ConstructorParametersAfterFirst<typeof GetBlockRequest>): Promise<RpcRequestResult<string | import("verus-typescript-primitives/dist/block/BlockInfo").BlockInfo>>;
+    getBlockCount(...args: ConstructorParametersAfterFirst<typeof GetBlockCountRequest>): Promise<RpcRequestResult<number>>;
     getVdxfId(...args: ConstructorParametersAfterFirst<typeof GetVdxfIdRequest>): Promise<RpcRequestResult<{
         vdxfid: string;
         hash160result: string;
