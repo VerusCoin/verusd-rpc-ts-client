@@ -135,6 +135,13 @@ Gets information about a block.
 getBlock(hash: string, verbosity?: number): Promise<RpcRequestResult<string | BlockInfo>>
 ```
 
+#### getBlockCount
+
+Gets the number of blocks in the best valid block chain.
+```typescript
+getBlockCount(): Promise<RpcRequestResult<number>>
+```
+
 #### getVdxfId
 
 Creates a vdxfid from a vdxfkey string, e.g. vrsc::data.example
