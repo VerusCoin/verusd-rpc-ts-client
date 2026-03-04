@@ -45,7 +45,8 @@
   ],
   "dependencies": {
     "axios": "1.11.0",
-    "verus-typescript-primitives": "git+https://github.com/VerusCoin/verus-typescript-primitives.git"
+    "verus-typescript-primitives": "git+https://github.com/VerusCoin/verus-typescript-primitives.git",
+    "blake2b": "https://github.com/VerusCoin/blake2b"
   },
   "resolutions": {
     "brace-expansion": "1.1.12",

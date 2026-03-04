@@ -1,3 +1,5 @@
+const blake2b = require('blake2b');
+
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import {
   GetAddressBalanceRequest,
@@ -66,10 +68,13 @@ type Convertable = {
 
 type Convertables = { [key: string]: Array<Convertable> }
 
+type APIAuthData = { key: string, id: string }
+
 class VerusdRpcInterface {
   instance?: AxiosInstance;
   currid: number;
   chain: string;
+  APIAuth?: APIAuthData;
 
   rpcRequestOverride?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>;
 
@@ -78,7 +83,13 @@ class VerusdRpcInterface {
   private listcurrenciescache: Map<string, RpcRequestResultSuccess<ListCurrenciesResponse["result"]>> = new Map();
   private infocache: RpcRequestResultSuccess<GetInfoResponse["result"]> | null = null;
 
-  constructor(chain: string, baseURL: string, config?: AxiosRequestConfig, rpcRequest?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>) {
+  constructor(
+    chain: string, 
+    baseURL: string, 
+    config?: AxiosRequestConfig, 
+    rpcRequest?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>, 
+    APIAuth?: APIAuthData
+  ) {
     if (rpcRequest) this.rpcRequestOverride = rpcRequest;
     else {
       this.instance = axios.create({
@@ -92,6 +103,7 @@ class VerusdRpcInterface {
 
     this.currid = 0;
     this.chain = chain;
+    this.APIAuth = APIAuth;
   }
 
   async request<D>(req: ApiRequest): Promise<RpcRequestResult<D>> {
@@ -108,7 +120,29 @@ class VerusdRpcInterface {
     if (this.rpcRequestOverride) return this.rpcRequestOverride(body);
  
     try {
-      const res: AxiosResponse = await this.instance!.post("/", body);
+      let res: AxiosResponse;
+
+      if (this.APIAuth) {
+        const hash = blake2b(64);
+        const time = new Date().valueOf();
+
+        hash.update(Buffer.from(time.toString(), 'utf-8'));
+        hash.update(Buffer.from(this.APIAuth!.key, 'utf-8'));
+        hash.update(Buffer.from(req.cmd, 'utf-8'));
+        hash.update(Buffer.from(this.APIAuth!.id, 'utf-8'));
+
+        const validityKey = hash.digest("hex");
+
+        res = await this.instance!.post("/", body, {
+          headers: {
+            ['X-App-ID']: this.APIAuth!.id,
+            ['X-Timestamp']: time,
+            ['X-Auth-Token']: validityKey
+          }
+        });
+      } else {
+        res = await this.instance!.post("/", body);
+      }
 
       if (res.status != 200) {
         const error: RpcRequestResultError = {
