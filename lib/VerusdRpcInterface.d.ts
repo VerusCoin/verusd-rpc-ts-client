@@ -23,6 +23,7 @@ declare class VerusdRpcInterface {
     currid: number;
     chain: string;
     APIAuth?: APIAuthData;
+    static VRPC_API_VERSION_CURRENT: string;
     rpcRequestOverride?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>;
     private currencycache;
     private converterscache;

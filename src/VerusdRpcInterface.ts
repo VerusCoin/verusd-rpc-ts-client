@@ -76,6 +76,8 @@ class VerusdRpcInterface {
   chain: string;
   APIAuth?: APIAuthData;
 
+  static VRPC_API_VERSION_CURRENT = "2";
+
   rpcRequestOverride?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>;
 
   private currencycache: Map<string, RpcRequestResultSuccess<GetCurrencyResponse["result"]>> = new Map();
@@ -128,8 +130,9 @@ class VerusdRpcInterface {
 
         hash.update(Buffer.from(time.toString(), 'utf-8'));
         hash.update(Buffer.from(this.APIAuth!.key, 'utf-8'));
-        hash.update(Buffer.from(req.cmd, 'utf-8'));
+        hash.update(Buffer.from(JSON.stringify(body), 'utf-8'));
         hash.update(Buffer.from(this.APIAuth!.id, 'utf-8'));
+        hash.update(Buffer.from(VerusdRpcInterface.VRPC_API_VERSION_CURRENT, 'utf-8'));
 
         const validityKey = hash.digest("hex");
 
@@ -137,11 +140,16 @@ class VerusdRpcInterface {
           headers: {
             ['X-App-ID']: this.APIAuth!.id,
             ['X-Timestamp']: time,
-            ['X-Auth-Token']: validityKey
+            ['X-Auth-Token']: validityKey,
+            ["X-VRPC-API-Version"]: VerusdRpcInterface.VRPC_API_VERSION_CURRENT
           }
         });
       } else {
-        res = await this.instance!.post("/", body);
+        res = await this.instance!.post("/", body, {
+          headers: {
+            ["X-VRPC-API-Version"]: VerusdRpcInterface.VRPC_API_VERSION_CURRENT
+          }
+        });
       }
 
       if (res.status != 200) {
