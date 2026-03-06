@@ -31,6 +31,7 @@ declare class VerusdRpcInterface {
     private infocache;
     constructor(chain: string, baseURL: string, config?: AxiosRequestConfig, rpcRequest?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>, APIAuth?: APIAuthData);
     request<D>(req: ApiRequest): Promise<RpcRequestResult<D>>;
+    private getAuthToken;
     getAddressBalance(...args: ConstructorParametersAfterFirst<typeof GetAddressBalanceRequest>): Promise<RpcRequestResult<{
         balance: number;
         received: number;

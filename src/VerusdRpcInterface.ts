@@ -55,6 +55,7 @@ import {
 import { ConstructorParametersAfterFirst, RemoveFirstFromTuple } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult, RpcRequestResultError, RpcRequestResultSuccess } from "./types/RpcRequest";
 import { IS_FRACTIONAL_FLAG, IS_GATEWAY_CONVERTER_FLAG, IS_GATEWAY_FLAG, checkFlag } from "./utils/flags";
+import crypto from "crypto";
 
 type Convertable = {
   via?: CurrencyDefinition,
@@ -125,23 +126,18 @@ class VerusdRpcInterface {
       let res: AxiosResponse;
 
       if (this.APIAuth) {
-        const hash = blake2b(64);
         const time = new Date().valueOf();
+        const salt = crypto.randomBytes(32);
 
-        hash.update(Buffer.from(time.toString(), 'utf-8'));
-        hash.update(Buffer.from(this.APIAuth!.key, 'utf-8'));
-        hash.update(Buffer.from(JSON.stringify(body), 'utf-8'));
-        hash.update(Buffer.from(this.APIAuth!.id, 'utf-8'));
-        hash.update(Buffer.from(VerusdRpcInterface.VRPC_API_VERSION_CURRENT, 'utf-8'));
-
-        const validityKey = hash.digest("hex");
+        const validityKey = this.getAuthToken(time, body, salt);
 
         res = await this.instance!.post("/", body, {
           headers: {
             ['X-App-ID']: this.APIAuth!.id,
             ['X-Timestamp']: time,
             ['X-Auth-Token']: validityKey,
-            ["X-VRPC-API-Version"]: VerusdRpcInterface.VRPC_API_VERSION_CURRENT
+            ["X-VRPC-API-Version"]: VerusdRpcInterface.VRPC_API_VERSION_CURRENT,
+            ['X-Salt']: salt.toString('hex')
           }
         });
       } else {
@@ -181,6 +177,19 @@ class VerusdRpcInterface {
 
       return error;
     }
+  }
+
+  private getAuthToken(time: number, body: RpcRequestBody<number>, salt: Buffer): string {
+    const hash = blake2b(64);
+
+    hash.update(Buffer.from(time.toString(), 'utf-8'));
+    hash.update(Buffer.from(this.APIAuth!.key, 'utf-8'));
+    hash.update(Buffer.from(JSON.stringify(body), 'utf-8'));
+    hash.update(Buffer.from(this.APIAuth!.id, 'utf-8'));
+    hash.update(Buffer.from(VerusdRpcInterface.VRPC_API_VERSION_CURRENT, 'utf-8'));
+    hash.update(salt);
+
+    return hash.digest("hex");
   }
 
   getAddressBalance(...args: ConstructorParametersAfterFirst<typeof GetAddressBalanceRequest>) {
