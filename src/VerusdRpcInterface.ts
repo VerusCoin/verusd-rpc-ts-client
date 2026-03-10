@@ -65,11 +65,12 @@ type Convertable = {
   viapriceinroot?: number,
   destpriceinvia?: number,
   gateway: boolean
-}
+};
 
-type Convertables = { [key: string]: Array<Convertable> }
+type Convertables = { [key: string]: Array<Convertable> };
 
-type APIAuthData = { key: string, id: string }
+export type APIAuthData = { key: string, id: string };
+export type RPCRequestOverride = <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>;
 
 class VerusdRpcInterface {
   instance?: AxiosInstance;
@@ -79,7 +80,7 @@ class VerusdRpcInterface {
 
   static VRPC_API_VERSION_CURRENT = "2";
 
-  rpcRequestOverride?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>;
+  rpcRequestOverride?: RPCRequestOverride;
 
   private currencycache: Map<string, RpcRequestResultSuccess<GetCurrencyResponse["result"]>> = new Map();
   private converterscache: Map<string, RpcRequestResultSuccess<GetCurrencyConvertersResponse["result"]>> = new Map();
@@ -90,7 +91,7 @@ class VerusdRpcInterface {
     chain: string, 
     baseURL: string, 
     config?: AxiosRequestConfig, 
-    rpcRequest?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>, 
+    rpcRequest?: RPCRequestOverride,
     APIAuth?: APIAuthData
   ) {
     if (rpcRequest) this.rpcRequestOverride = rpcRequest;
