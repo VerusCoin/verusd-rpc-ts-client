@@ -1,3 +1,5 @@
+const blake2b = require('blake2b');
+
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import {
   GetAddressBalanceRequest,
@@ -53,6 +55,7 @@ import {
 import { ConstructorParametersAfterFirst, RemoveFirstFromTuple } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult, RpcRequestResultError, RpcRequestResultSuccess } from "./types/RpcRequest";
 import { IS_FRACTIONAL_FLAG, IS_GATEWAY_CONVERTER_FLAG, IS_GATEWAY_FLAG, checkFlag } from "./utils/flags";
+import crypto from "crypto";
 
 type Convertable = {
   via?: CurrencyDefinition,
@@ -66,10 +69,15 @@ type Convertable = {
 
 type Convertables = { [key: string]: Array<Convertable> }
 
+type APIAuthData = { key: string, id: string }
+
 class VerusdRpcInterface {
   instance?: AxiosInstance;
   currid: number;
   chain: string;
+  APIAuth?: APIAuthData;
+
+  static VRPC_API_VERSION_CURRENT = "2";
 
   rpcRequestOverride?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>;
 
@@ -78,7 +86,13 @@ class VerusdRpcInterface {
   private listcurrenciescache: Map<string, RpcRequestResultSuccess<ListCurrenciesResponse["result"]>> = new Map();
   private infocache: RpcRequestResultSuccess<GetInfoResponse["result"]> | null = null;
 
-  constructor(chain: string, baseURL: string, config?: AxiosRequestConfig, rpcRequest?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>) {
+  constructor(
+    chain: string, 
+    baseURL: string, 
+    config?: AxiosRequestConfig, 
+    rpcRequest?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>, 
+    APIAuth?: APIAuthData
+  ) {
     if (rpcRequest) this.rpcRequestOverride = rpcRequest;
     else {
       this.instance = axios.create({
@@ -92,6 +106,7 @@ class VerusdRpcInterface {
 
     this.currid = 0;
     this.chain = chain;
+    this.APIAuth = APIAuth;
   }
 
   async request<D>(req: ApiRequest): Promise<RpcRequestResult<D>> {
@@ -108,7 +123,30 @@ class VerusdRpcInterface {
     if (this.rpcRequestOverride) return this.rpcRequestOverride(body);
  
     try {
-      const res: AxiosResponse = await this.instance!.post("/", body);
+      let res: AxiosResponse;
+
+      if (this.APIAuth) {
+        const time = new Date().valueOf();
+        const salt = crypto.randomBytes(32);
+
+        const validityKey = this.getAuthToken(time, body, salt);
+
+        res = await this.instance!.post("/", body, {
+          headers: {
+            ['X-App-ID']: this.APIAuth!.id,
+            ['X-Timestamp']: time,
+            ['X-Auth-Token']: validityKey,
+            ["X-VRPC-API-Version"]: VerusdRpcInterface.VRPC_API_VERSION_CURRENT,
+            ['X-Salt']: salt.toString('hex')
+          }
+        });
+      } else {
+        res = await this.instance!.post("/", body, {
+          headers: {
+            ["X-VRPC-API-Version"]: VerusdRpcInterface.VRPC_API_VERSION_CURRENT
+          }
+        });
+      }
 
       if (res.status != 200) {
         const error: RpcRequestResultError = {
@@ -139,6 +177,19 @@ class VerusdRpcInterface {
 
       return error;
     }
+  }
+
+  private getAuthToken(time: number, body: RpcRequestBody<number>, salt: Buffer): string {
+    const hash = blake2b(64);
+
+    hash.update(Buffer.from(time.toString(), 'utf-8'));
+    hash.update(Buffer.from(this.APIAuth!.key, 'utf-8'));
+    hash.update(Buffer.from(JSON.stringify(body), 'utf-8'));
+    hash.update(Buffer.from(this.APIAuth!.id, 'utf-8'));
+    hash.update(Buffer.from(VerusdRpcInterface.VRPC_API_VERSION_CURRENT, 'utf-8'));
+    hash.update(salt);
+
+    return hash.digest("hex");
   }
 
   getAddressBalance(...args: ConstructorParametersAfterFirst<typeof GetAddressBalanceRequest>) {

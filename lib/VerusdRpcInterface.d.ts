@@ -14,17 +14,24 @@ type Convertable = {
 type Convertables = {
     [key: string]: Array<Convertable>;
 };
+type APIAuthData = {
+    key: string;
+    id: string;
+};
 declare class VerusdRpcInterface {
     instance?: AxiosInstance;
     currid: number;
     chain: string;
+    APIAuth?: APIAuthData;
+    static VRPC_API_VERSION_CURRENT: string;
     rpcRequestOverride?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>;
     private currencycache;
     private converterscache;
     private listcurrenciescache;
     private infocache;
-    constructor(chain: string, baseURL: string, config?: AxiosRequestConfig, rpcRequest?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>);
+    constructor(chain: string, baseURL: string, config?: AxiosRequestConfig, rpcRequest?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>, APIAuth?: APIAuthData);
     request<D>(req: ApiRequest): Promise<RpcRequestResult<D>>;
+    private getAuthToken;
     getAddressBalance(...args: ConstructorParametersAfterFirst<typeof GetAddressBalanceRequest>): Promise<RpcRequestResult<{
         balance: number;
         received: number;
