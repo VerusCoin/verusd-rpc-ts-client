@@ -3435,7 +3435,7 @@ v8-to-istanbul@^9.0.1:
 
 "verus-typescript-primitives@git+https://github.com/VerusCoin/verus-typescript-primitives.git":
   version "1.0.0"
-  resolved "git+https://github.com/VerusCoin/verus-typescript-primitives.git#3fd302344a620d866c08aea52b70075fc53688f4"
+  resolved "git+https://github.com/VerusCoin/verus-typescript-primitives.git#3125933e6fa0034e69adf8b8831746195aef2a40"
   dependencies:
     base64url "3.0.1"
     bech32 "2.0.0"
