@@ -1,5 +1,5 @@
 import { AxiosInstance, AxiosRequestConfig } from "axios";
-import { GetAddressBalanceRequest, ApiRequest, GetAddressDeltasRequest, GetAddressUtxosRequest, GetBlockRequest, GetBlockCountRequest, GetIdentityRequest, GetIdentityContentRequest, GetInfoRequest, GetOffersRequest, GetRawTransactionRequest, MakeOfferRequest, SendRawTransactionRequest, GetCurrencyRequest, GetAddressMempoolRequest, GetVdxfIdRequest, FundRawTransactionRequest, SignRawTransactionRequest, SendCurrencyRequest, GetCurrencyConvertersRequest, CurrencyDefinition, ApiResponse, ListCurrenciesRequest, EstimateConversionRequest, ZGetOperationStatusRequest, SignDataRequest, UpdateIdentityRequest } from "verus-typescript-primitives";
+import { GetAddressBalanceRequest, ApiRequest, GetAddressDeltasRequest, GetAddressUtxosRequest, GetBlockRequest, GetBlockCountRequest, GetIdentityRequest, GetIdentityContentRequest, GetIdentitiesWithAddressRequest, GetInfoRequest, GetOffersRequest, GetRawTransactionRequest, MakeOfferRequest, SendRawTransactionRequest, GetCurrencyRequest, GetAddressMempoolRequest, GetVdxfIdRequest, FundRawTransactionRequest, SignRawTransactionRequest, SendCurrencyRequest, GetCurrencyConvertersRequest, CurrencyDefinition, ApiResponse, ListCurrenciesRequest, EstimateConversionRequest, ZGetOperationStatusRequest, SignDataRequest, UpdateIdentityRequest } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult } from "./types/RpcRequest";
 type Convertable = {
@@ -142,6 +142,12 @@ declare class VerusdRpcInterface {
         vout: number;
         proof?: string;
     }>>;
+    getIdentitiesWithAddress(...args: ConstructorParametersAfterFirst<typeof GetIdentitiesWithAddressRequest>): Promise<RpcRequestResult<(import("verus-typescript-primitives").IdentityDefinition & {
+        txout: {
+            txid: string;
+            voutnum: number;
+        };
+    })[]>>;
     getCurrency(...args: ConstructorParametersAfterFirst<typeof GetCurrencyRequest>): Promise<RpcRequestResult<CurrencyDefinition>>;
     getInfo(...args: ConstructorParametersAfterFirst<typeof GetInfoRequest>): Promise<RpcRequestResult<{
         version: number;
