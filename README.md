@@ -9,10 +9,33 @@ A TypeScript client for interacting with Verus RPC endpoints.
 yarn add verusd-rpc-ts-client
 ```
 
+## Primitives compatibility update
+
+This revision pins `verus-typescript-primitives` to public commit
+[`7a7b01db697222cd68507a9dbf15f289615ea890`](https://github.com/VerusCoin/verus-typescript-primitives/commit/7a7b01db697222cd68507a9dbf15f289615ea890).
+Keep direct primitives dependencies aligned with this revision. Its package version remains `1.0.0`.
+The client targets ES2015; the updated primitives declarations require ES2015 or later.
+
+- Address UTXO and delta results can be arrays or chain-info objects. UTXO `isspendable` is boolean and `blocktime` is optional. Mempool entries have `timestamp` and `spending`, without confirmed-block fields.
+- Currency definitions and blockchain information have optional fields. Offers can return `false`, and send-currency templates can contain `hextx` or `hextxwithoutz`. Use the response types below and narrow unions before accessing their fields.
+- Converter path discovery uses currency IDs and fetches full definitions when list entries lack `bestheight`. Missing or ambiguous definitions in converter records reject path discovery; `getCurrencyConverters` returns the original daemon records.
+- Optional request arguments retain their positions. `signRawTransaction(hex, prevtxs?, sighashtype?, branchid?, privatekeys?)` appends private keys to the client arguments; the request class puts them in the daemon's third wire slot. Omitting private keys and passing `[]` have different meanings.
+- `fundRawTransaction` accepts hex alone, or UTXOs together with a change address and optional explicit fee. Unsupported combinations reject before an RPC is sent. Nested `signData` MMR inputs use `serializedhex` / `serializedbase64` and `mimetype`.
+- Applications using the re-exported `Primitives` must also migrate parser reuse, renamed JSON fields, and affected stored bytes/signatures. Deserialization instances are single-use, including failed attempts, and legacy `SignedSessionObject` construction is disabled.
+
+For example, normalize either UTXO result shape while retaining the original response if chain metadata is needed:
+
+```typescript
+const result = VerusdRpcInterface.extractRpcResult<Primitives.GetAddressUtxosResponse>(
+  await client.getAddressUtxos({ addresses: ['identity@'], chaininfo: true })
+);
+const utxos = Array.isArray(result) ? result : result.utxos;
+```
+
 ## Usage
 
 ```typescript
-import VerusdRpcInterface from 'verusd-rpc-ts-client';
+import { VerusdRpcInterface, Primitives } from 'verusd-rpc-ts-client';
 
 const client = new VerusdRpcInterface(
   'chain', // The chain to connect to
@@ -60,23 +83,12 @@ Gets the transaction deltas for one or more addresses.
 ```typescript
 getAddressDeltas(addresses: {
   addresses: string[];
+  start?: number;
+  end?: number;
+  chaininfo?: boolean;
+  verbosity?: number;
   friendlynames?: boolean;
-}): Promise<RpcRequestResult<Array<{
-  satoshis: number;
-  txid: string;
-  index: number;
-  blockindex: number;
-  height: number;
-  address: string;
-  currencyvalues?: { [key: string]: number };
-  currencynames?: { [key: string]: string };
-  sent?: {
-    outputs: Array<{
-      addresses: string | string[];
-      amounts: { [key: string]: number };
-    }>;
-  };
-}>>>
+}): Promise<RpcRequestResult<Primitives.GetAddressDeltasResponse['result']>>
 ```
 
 #### getAddressMempool
@@ -86,23 +98,12 @@ Gets the mempool transactions for one or more addresses.
 ```typescript
 getAddressMempool(addresses: {
   addresses: string[];
+  start?: number;
+  end?: number;
+  chaininfo?: boolean;
+  verbosity?: number;
   friendlynames?: boolean;
-}): Promise<RpcRequestResult<Array<{
-  satoshis: number;
-  txid: string;
-  index: number;
-  blockindex: number;
-  height: number;
-  address: string;
-  currencyvalues?: { [key: string]: number };
-  currencynames?: { [key: string]: string };
-  sent?: {
-    outputs: Array<{
-      addresses: string | string[];
-      amounts: { [key: string]: number };
-    }>;
-  };
-}>>>
+}): Promise<RpcRequestResult<Primitives.GetAddressMempoolResponse['result']>>
 ```
 
 #### getAddressUtxos
@@ -112,19 +113,9 @@ Gets the unspent transaction outputs for one or more addresses.
 ```typescript
 getAddressUtxos(addresses: {
   addresses: string[];
+  chaininfo?: boolean;
   friendlynames?: boolean;
-}): Promise<RpcRequestResult<Array<{
-  address: string;
-  txid: string;
-  outputIndex: number;
-  script: string;
-  currencyvalues?: { [key: string]: number | undefined };
-  currencynames?: { [key: string]: string | undefined };
-  satoshis: number;
-  height: number;
-  isspendable: number;
-  blocktime: number;
-}>>>
+}): Promise<RpcRequestResult<Primitives.GetAddressUtxosResponse['result']>>
 ```
 
 #### getBlock
@@ -147,19 +138,11 @@ getBlockCount(): Promise<RpcRequestResult<number>>
 Creates a vdxfid from a vdxfkey string, e.g. vrsc::data.example
 
 ```typescript
-getVdxfId(vdxfid: string): Promise<RpcRequestResult<{
-  vdxfid: string;
-  hash160result: string;
-  qualifiedname: {
-    name: string;
-    parentid: string;
-  };
-  bounddata?: {
-    vdxfkey: string;
-    uint256: string;
-    indexnum: string;
-  };
-}>>
+getVdxfId(vdxfuri: string, initialdata?: {
+  vdxfkey?: string;
+  uint256?: string;
+  indexnum?: string | number;
+}): Promise<RpcRequestResult<Primitives.GetVdxfIdResponse['result']>>
 ```
 
 #### getIdentity
@@ -209,43 +192,7 @@ getCurrency(currencyid: string): Promise<RpcRequestResult<CurrencyDefinition>>
 Gets information about the current state of the blockchain.
 
 ```typescript
-getInfo(): Promise<RpcRequestResult<{
-  version: number;
-  protocolversion: number;
-  VRSCversion: string;
-  notarized: number;
-  prevMoMheight: number;
-  notarizedhash: string;
-  notarizedtxid: string;
-  notarizedtxid_height: string;
-  KMDnotarized_height: number;
-  notarized_confirms: number;
-  blocks: number;
-  longestchain: number;
-  timeoffset: number;
-  tiptime: number;
-  connections: number;
-  proxy: string;
-  difficulty: number;
-  testnet: boolean;
-  paytxfee: number;
-  relayfee: number;
-  errors: string;
-  CCid: number;
-  name: string;
-  p2pport: number;
-  rpcport: number;
-  magic: number;
-  premine: number;
-  eras: number;
-  reward: string;
-  halving: string;
-  decay: string;
-  endsubsidy: string;
-  veruspos: number;
-  chainid?: string;
-  notarychainid?: string;
-}>>
+getInfo(): Promise<RpcRequestResult<Primitives.GetInfoResponse['result']>>
 ```
 
 #### getOffers
@@ -253,7 +200,7 @@ getInfo(): Promise<RpcRequestResult<{
 Gets the current offers in the marketplace.
 
 ```typescript
-getOffers(): Promise<RpcRequestResult<OfferList>>
+getOffers(currencyorid: string, iscurrency?: boolean, withtx?: boolean): Promise<RpcRequestResult<Primitives.GetOffersResponse['result']>>
 ```
 
 #### getRawTransaction
@@ -261,7 +208,7 @@ getOffers(): Promise<RpcRequestResult<OfferList>>
 Gets a raw transaction by its ID.
 
 ```typescript
-getRawTransaction(txid: string, verbose?: boolean): Promise<RpcRequestResult<string | RawTransaction>>
+getRawTransaction(txid: string, verbose?: number): Promise<RpcRequestResult<string | RawTransaction>>
 ```
 
 #### makeOffer
@@ -299,19 +246,10 @@ sendRawTransaction(hex: string): Promise<RpcRequestResult<string | RawTransactio
 Funds a raw transaction with inputs.
 
 ```typescript
-fundRawTransaction(hex: string, options?: {
-  changeAddress?: string;
-  changePosition?: number;
-  includeWatching?: boolean;
-  lockUnspents?: boolean;
-  reserveChangeKey?: boolean;
-  feeRate?: number;
-  subtractFeeFromOutputs?: number[];
-}): Promise<RpcRequestResult<{
-  hex: string;
-  changepos: number;
-  fee: number;
-}>>
+fundRawTransaction(txhex: string, utxos?: Array<{
+  voutnum: number;
+  txid: string;
+}>, changeaddr?: string, explicitfee?: number): Promise<RpcRequestResult<Primitives.FundRawTransactionResponse['result']>>
 ```
 
 #### sendCurrency
@@ -319,75 +257,33 @@ fundRawTransaction(hex: string, options?: {
 Sends currency to one or more addresses.
 
 ```typescript
-sendCurrency(params: {
-  amounts: { [address: string]: number };
-  currencyid: string;
-  fee?: number;
-  fromaddress?: string;
-  changeaddress?: string;
-  returntxtemplate?: boolean;
-}): Promise<RpcRequestResult<string | {
-  outputtotals: { [currencyid: string]: number };
-  feeamount: number;
-  hextx: string;
-}>>
+sendCurrency(
+  fromaddress: string,
+  outputs: Primitives.SendCurrencyRequest['outputs'],
+  minconf?: number,
+  feeamount?: number,
+  returntxtemplate?: boolean
+): Promise<RpcRequestResult<Primitives.SendCurrencyResponse['result']>>
 ```
 
 #### getCurrencyConverters
 
-Gets a map of the possible conversion paths from a given list of currencies.
+Gets daemon converter records for a given list of currencies. Each record includes a dynamic currency-ID-keyed raw definition and metadata such as `height`, `output`, and `lastnotarization`; object key order is not significant.
 
 ```typescript
-getCurrencyConverters(currencyids: string[]): Promise<RpcRequestResult<Array<{
-  [key: string]: CurrencyDefinition;
-}>>>
+getCurrencyConverters(currencyids: string[]): Promise<RpcRequestResult<Primitives.GetCurrencyConvertersResponse['result']>>
 ```
 
 #### listCurrencies
 
-Lists all currencies in the system.
+Lists currencies and their available state metadata. Nested definitions are raw definitions with selected enrichment; they are not complete `getCurrency` results.
 
 ```typescript
-listCurrencies(params?: {
-  systemtype?: string;
-  startblock?: number;
-  endblock?: number;
-}): Promise<RpcRequestResult<Array<{
-  currencydefinition: CurrencyDefinition;
-  bestheight?: number;
-  besttxid?: string;
-  besttxout?: number;
-  bestcurrencystate?: {
-    flags: number;
-    version: number;
-    currencyid: string;
-    reservecurrencies: Array<{
-      currencyid: string;
-      weight: number;
-      reserves: number;
-      priceinreserve: number;
-    }>;
-    initialsupply: number;
-    emitted: number;
-    supply: number;
-    currencies: {
-      [key: string]: {
-        reservein: number;
-        primarycurrencyin: number;
-        reserveout: number;
-        lastconversionprice: number;
-        viaconversionprice: number;
-        fees: number;
-        conversionfees: number;
-        priorweights: number;
-      };
-    };
-    primarycurrencyfees: number;
-    primarycurrencyconversionfees: number;
-    primarycurrencyout: number;
-    preconvertedout: number;
-  };
-}>>>
+listCurrencies(
+  query?: Primitives.ListCurrenciesRequest['query'],
+  startblock?: number,
+  endblock?: number
+): Promise<RpcRequestResult<Primitives.ListCurrenciesResponse['result']>>
 ```
 
 #### estimateConversion
@@ -457,7 +353,7 @@ static extractRpcResult<D extends ApiResponse>(res: RpcRequestResult<D["result"]
 
 ## Error Handling
 
-All methods return a Promise that resolves to a `RpcRequestResult` object. This object can contain either a successful result or an error. Use the `extractRpcResult` static method to handle errors automatically:
+RPC methods return a Promise that resolves to a `RpcRequestResult` object. Invalid request parameters can reject that Promise before an RPC is sent. This object can contain either a successful result or an error. Use the `extractRpcResult` static method to handle errors automatically:
 
 ```typescript
 try {

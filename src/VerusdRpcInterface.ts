@@ -71,6 +71,43 @@ type Convertable = {
 
 type Convertables = { [key: string]: Array<Convertable> };
 
+type ConverterCandidate = { currencyid: string };
+
+const converterMetadataKeys = new Set([
+  "fullyqualifiedname",
+  "height",
+  "output",
+  "lastnotarization",
+  "targetamount",
+  "sourceamounts"
+]);
+
+function normalizeConverterCandidate(record: GetCurrencyConvertersResponse["result"][number]): ConverterCandidate {
+  const invalidRecordMessage = "Invalid currency converter response: expected exactly one currency-ID-keyed definition";
+
+  if (record == null || typeof record !== "object" || Array.isArray(record)) {
+    throw new Error(invalidRecordMessage);
+  }
+
+  const currencyids = Object.keys(record).filter(key => {
+    if (converterMetadataKeys.has(key)) return false;
+
+    const definition: unknown = record[key];
+
+    return definition != null &&
+      typeof definition === "object" &&
+      !Array.isArray(definition) &&
+      "currencyid" in definition &&
+      typeof definition.currencyid === "string" &&
+      definition.currencyid.length > 0 &&
+      key === definition.currencyid;
+  });
+
+  if (currencyids.length !== 1) throw new Error(invalidRecordMessage);
+
+  return { currencyid: currencyids[0] };
+}
+
 export type APIAuthData = { key: string, id: string };
 export type RPCRequestOverride = <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>;
 
@@ -85,8 +122,9 @@ class VerusdRpcInterface {
   rpcRequestOverride?: RPCRequestOverride;
 
   private currencycache: Map<string, RpcRequestResultSuccess<GetCurrencyResponse["result"]>> = new Map();
-  private converterscache: Map<string, RpcRequestResultSuccess<GetCurrencyConvertersResponse["result"]>> = new Map();
+  private converterscache: Map<string, RpcRequestResultSuccess<ConverterCandidate[]>> = new Map();
   private listcurrenciescache: Map<string, RpcRequestResultSuccess<ListCurrenciesResponse["result"]>> = new Map();
+  private listcurrencystatescache: Map<string, NonNullable<CurrencyDefinition["bestcurrencystate"]>> = new Map();
   private infocache: RpcRequestResultSuccess<GetInfoResponse["result"]> | null = null;
 
   constructor(
@@ -344,6 +382,46 @@ class VerusdRpcInterface {
     return response
   }
 
+  private async getCachedCurrencyState(definition: CurrencyDefinition) {
+    if (definition.bestcurrencystate) {
+      return { definition, state: definition.bestcurrencystate };
+    }
+
+    const cachedDefinition = this.currencycache.get(definition.currencyid)?.result;
+    if (cachedDefinition?.bestcurrencystate) {
+      return { definition: cachedDefinition, state: cachedDefinition.bestcurrencystate };
+    }
+
+    // List pricing state does not necessarily belong to the enriched definition's height.
+    const listedState = this.listcurrencystatescache.get(definition.currencyid);
+    if (listedState) {
+      return { definition: cachedDefinition || definition, state: listedState };
+    }
+
+    const response = await this.request<GetCurrencyResponse["result"]>(
+      new GetCurrencyRequest(this.chain, definition.currencyid)
+    );
+    if (response.error) throw new Error(response.error.message);
+
+    this.currencycache.set(definition.currencyid, response);
+
+    if (!response.result.bestcurrencystate) {
+      throw new Error(`Missing currency state for ${definition.currencyid}`);
+    }
+
+    return { definition: response.result, state: response.result.bestcurrencystate };
+  }
+
+  private getConverterExportCurrencyId(definition: CurrencyDefinition): string {
+    const currencyid = definition.parent === this.chain ? definition.launchsystemid : definition.parent;
+
+    if (!currencyid) {
+      throw new Error(`Missing export currency for converter ${definition.currencyid}`);
+    }
+
+    return currencyid;
+  }
+
   private async getCachedInfo(...args: ConstructorParametersAfterFirst<typeof GetInfoRequest>) {
     if (this.infocache != null) {
       return this.infocache!;
@@ -399,7 +477,9 @@ class VerusdRpcInterface {
     })
   }
 
-  private async getCachedCurrencyConverters(...args: ConstructorParametersAfterFirst<typeof GetCurrencyConvertersRequest>) {
+  private async getCachedCurrencyConverters(
+    ...args: ConstructorParametersAfterFirst<typeof GetCurrencyConvertersRequest>
+  ): Promise<RpcRequestResult<ConverterCandidate[]>> {
     const key = JSON.stringify(args)
 
     if (this.converterscache.has(key)) {
@@ -414,10 +494,10 @@ class VerusdRpcInterface {
       await this.getCachedInfo()
     ))
 
-    // Try to cache locally constructed converter responses
+    // Cache candidate IDs from listcurrencies; these are not raw daemon records.
     for (const source of allCurrencies) {
       const sourceDefinition = source.currencydefinition;
-      const converters: GetCurrencyConvertersResponse["result"] = [];
+      const converters: ConverterCandidate[] = [];
 
       for (const dest of allCurrencies) {
         const destDefinition = dest.currencydefinition;
@@ -429,12 +509,7 @@ class VerusdRpcInterface {
           if (destDefinition.startblock > chainInfo.longestchain && 
               !(destDefinition.maxpreconversion && destDefinition.maxpreconversion.reduce((sum, a) => sum + a, 0) === 0)
           ) {
-            converters.push({
-              [destDefinition.name]: {
-                ...destDefinition,
-                bestcurrencystate: dest.bestcurrencystate
-              }
-            })
+            converters.push({ currencyid: destDefinition.currencyid })
           } else if (checkFlag(destDefinition.options, IS_FRACTIONAL_FLAG)) {
             const targetReserve = dest.bestcurrencystate.reservecurrencies.find(x => x.currencyid === root.currencyid);
             const systemReserve = dest.bestcurrencystate.reservecurrencies.find(
@@ -442,12 +517,7 @@ class VerusdRpcInterface {
             );
 
             if (targetReserve && targetReserve.weight > 0.1 && systemReserve && systemReserve.reserves > 1000) {
-              converters.push({
-                [destDefinition.name]: {
-                  ...destDefinition,
-                  bestcurrencystate: dest.bestcurrencystate
-                }
-              })
+              converters.push({ currencyid: destDefinition.currencyid })
             }
           }
 
@@ -456,7 +526,7 @@ class VerusdRpcInterface {
 
       const params = [[sourceDefinition.currencyid]];
 
-      const converterResponse: RpcRequestResultSuccess<GetCurrencyConvertersResponse["result"]> = {
+      const converterResponse: RpcRequestResultSuccess<ConverterCandidate[]> = {
         id: 0,
         result: converters,
         error: null
@@ -470,11 +540,16 @@ class VerusdRpcInterface {
         new GetCurrencyConvertersRequest(this.chain, ...args)
       );
 
-      if (response.result) {
-        this.converterscache.set(key, response);
-      }
+      if (response.error) return response;
 
-      return response;
+      const normalizedResponse: RpcRequestResultSuccess<ConverterCandidate[]> = {
+        ...response,
+        result: response.result.map(normalizeConverterCandidate)
+      };
+
+      this.converterscache.set(key, normalizedResponse);
+
+      return normalizedResponse;
     } else {
       return this.converterscache.get(key)!
     }
@@ -495,12 +570,17 @@ class VerusdRpcInterface {
     const gatewayConverterSource = checkFlag(src.options, IS_GATEWAY_CONVERTER_FLAG);
     const fractionalSource = 
       checkFlag(src.options, IS_FRACTIONAL_FLAG) && 
+      src.currencies != null &&
       (src.currencies.includes(currChainDefinition.currencyid)) &&
       (src.systemid === currChainDefinition.currencyid || gatewayConverterSource);
 
-    const paths = VerusdRpcInterface.extractRpcResult<GetCurrencyConvertersResponse>(
-      await this.getCachedCurrencyConverters(dest == null ? [src.currencyid] : [src.currencyid, dest!.currencyid])
-    )
+    const converterResponse = await this.getCachedCurrencyConverters(
+      dest == null ? [src.currencyid] : [src.currencyid, dest.currencyid]
+    );
+
+    if (converterResponse.error) throw new Error(converterResponse.error.message);
+
+    const paths = converterResponse.result;
 
     let convertables: Convertables = {};
 
@@ -541,9 +621,8 @@ class VerusdRpcInterface {
     }
 
     destination_iterator: for (const path of paths) {
-      const currencyName = Object.keys(path)[0];
-      const fullCurrencyDefinition = (VerusdRpcInterface.extractRpcResult<GetCurrencyResponse>(
-        await this.getCachedCurrency(path[currencyName].currencyid)
+      let fullCurrencyDefinition = (VerusdRpcInterface.extractRpcResult<GetCurrencyResponse>(
+        await this.getCachedCurrency(path.currencyid)
       ))
 
       let pricingCurrencyState;
@@ -552,13 +631,9 @@ class VerusdRpcInterface {
       let destpriceinvia;
 
       if (via) {
-        if (via.bestcurrencystate) {
-          pricingCurrencyState = via.bestcurrencystate;
-        } else {
-          pricingCurrencyState = (VerusdRpcInterface.extractRpcResult<GetCurrencyResponse>(
-            await this.getCachedCurrency(via.currencyid)
-          )).bestcurrencystate!
-        }
+        const pricingCurrency = await this.getCachedCurrencyState(via);
+        via = pricingCurrency.definition;
+        pricingCurrencyState = pricingCurrency.state;
 
         // If the pricingCurrency doesn't contain the destination
         // in it's reserves, we can't use it for via
@@ -574,15 +649,11 @@ class VerusdRpcInterface {
             pricingCurrencyState.currencies[fullCurrencyDefinition.currencyid]
               .lastconversionprice);
       } else {
-        if (fullCurrencyDefinition.bestcurrencystate) {
-          pricingCurrencyState = fullCurrencyDefinition.bestcurrencystate;
-        } else {
-          pricingCurrencyState = (VerusdRpcInterface.extractRpcResult<GetCurrencyResponse>(
-            await this.getCachedCurrency(fullCurrencyDefinition.currencyid)
-          )).bestcurrencystate!
-        }
+        const pricingCurrency = await this.getCachedCurrencyState(fullCurrencyDefinition);
+        fullCurrencyDefinition = pricingCurrency.definition;
+        pricingCurrencyState = pricingCurrency.state;
 
-        price = 1 / pricingCurrencyState!.currencies[src.currencyid].lastconversionprice;
+        price = 1 / pricingCurrencyState.currencies[src.currencyid].lastconversionprice;
       }
 
       const gateway = checkFlag(fullCurrencyDefinition.options, IS_GATEWAY_FLAG);
@@ -603,7 +674,7 @@ class VerusdRpcInterface {
               gateway ? 
                 fullCurrencyDefinition.currencyid 
                 : 
-                fractionalConverter.parent === this.chain ? fractionalConverter.launchsystemid : fractionalConverter.parent)
+                this.getConverterExportCurrencyId(fractionalConverter))
             )
           )
           : 
@@ -635,7 +706,7 @@ class VerusdRpcInterface {
       }
     }
 
-    if (fractionalSource && dest == null) {
+    if (fractionalSource && src.currencies != null && dest == null) {
       let price;
       let viapriceinroot;
       let destpriceinvia;
@@ -647,13 +718,9 @@ class VerusdRpcInterface {
           !ignoreCurrencies.includes(reserve)
         ) {
           if (via) {
-            if (via.bestcurrencystate) {
-              pricingCurrencyState = via.bestcurrencystate;
-            } else {
-              pricingCurrencyState = (VerusdRpcInterface.extractRpcResult<GetCurrencyResponse>(
-                await this.getCachedCurrency(via.currencyid)
-              )).bestcurrencystate!
-            }
+            const pricingCurrency = await this.getCachedCurrencyState(via);
+            via = pricingCurrency.definition;
+            pricingCurrencyState = pricingCurrency.state;
 
             viapriceinroot = 1 / pricingCurrencyState.currencies[root!.currencyid].lastconversionprice
             destpriceinvia = pricingCurrencyState.currencies[reserve].lastconversionprice
@@ -664,13 +731,9 @@ class VerusdRpcInterface {
                 pricingCurrencyState.currencies[reserve]
                   .lastconversionprice);
           } else {
-            if (src.bestcurrencystate) {
-              pricingCurrencyState = src.bestcurrencystate;
-            } else {
-              pricingCurrencyState = (VerusdRpcInterface.extractRpcResult<GetCurrencyResponse>(
-                await this.getCachedCurrency(src.currencyid)
-              )).bestcurrencystate!
-            }
+            const pricingCurrency = await this.getCachedCurrencyState(src);
+            src = pricingCurrency.definition;
+            pricingCurrencyState = pricingCurrency.state;
 
             price =
               pricingCurrencyState.currencies[reserve]
@@ -698,7 +761,7 @@ class VerusdRpcInterface {
                 await this.getCachedCurrency(gateway ? 
                   _destination.currencyid 
                   : 
-                  fractionalConverter.parent === this.chain ? fractionalConverter.launchsystemid : fractionalConverter.parent
+                  this.getConverterExportCurrencyId(fractionalConverter)
                 )
               ))
               : 
@@ -742,12 +805,14 @@ class VerusdRpcInterface {
           const started = (
             (convertablePath.destination.startblock <= chainInfo.longestchain) 
             || 
-            (convertablePath.destination.launchsystemid !== chainInfo.chainid)
+            (convertablePath.destination.launchsystemid != null &&
+             convertablePath.destination.launchsystemid !== chainInfo.chainid)
           )
 
           if (
             checkFlag(convertablePath.destination.options, IS_FRACTIONAL_FLAG) &&
             !ignoreCurrencies.includes(key) &&
+            convertablePath.destination.currencies != null &&
             convertablePath.destination.currencies.includes(src.currencyid) && 
             started
           ) {
@@ -870,8 +935,22 @@ class VerusdRpcInterface {
       const allCurrencies = await this.getAllCachedListCurrencies()
   
       for (const currency of allCurrencies) {
+        if (currency.bestcurrencystate) {
+          this.listcurrencystatescache.set(currency.currencydefinition.currencyid, currency.bestcurrencystate);
+        }
+
+        // Missing chain metadata must be fetched by getCachedCurrency when needed.
+        if (currency.bestheight == null) continue;
+
+        // A list entry without state must not replace a supplied pricing state.
+        if (currency.bestcurrencystate == null &&
+            this.currencycache.get(currency.currencydefinition.currencyid)?.result.bestcurrencystate != null) {
+          continue;
+        }
+
         const definition: GetCurrencyResponse["result"] = {
           ...currency.currencydefinition,
+          bestheight: currency.bestheight,
           bestcurrencystate: currency.bestcurrencystate
         }
   
@@ -895,6 +974,7 @@ class VerusdRpcInterface {
   
       this.currencycache.clear();
       this.listcurrenciescache.clear();
+      this.listcurrencystatescache.clear();
       this.converterscache.clear();
       this.infocache = null;
   
@@ -902,6 +982,7 @@ class VerusdRpcInterface {
     } catch(e) {
       this.currencycache.clear();
       this.listcurrenciescache.clear();
+      this.listcurrencystatescache.clear();
       this.converterscache.clear();
       this.infocache = null;
       
