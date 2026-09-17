@@ -12,7 +12,7 @@ yarn add verusd-rpc-ts-client
 ## Primitives compatibility update
 
 This revision pins `verus-typescript-primitives` to public commit
-[`7a7b01db697222cd68507a9dbf15f289615ea890`](https://github.com/VerusCoin/verus-typescript-primitives/commit/7a7b01db697222cd68507a9dbf15f289615ea890).
+[`3ffa9d77a3dd98c23fe4f66cf4368946906de780`](https://github.com/VerusCoin/verus-typescript-primitives/commit/3ffa9d77a3dd98c23fe4f66cf4368946906de780).
 Keep direct primitives dependencies aligned with this revision. Its package version remains `1.0.0`.
 The client targets ES2015; the updated primitives declarations require ES2015 or later.
 
