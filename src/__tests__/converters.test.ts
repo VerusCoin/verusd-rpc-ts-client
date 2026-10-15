@@ -97,7 +97,11 @@ function listed(
     ...currencydefinition
   } = definition;
   // listcurrencies does not guarantee the enrichment required by getcurrency.
-  return { currencydefinition, bestcurrencystate };
+  return {
+    currencydefinition,
+    // Listed converter fixtures include reserve data and conversion prices.
+    bestcurrencystate: bestcurrencystate as ListCurrenciesResponse["result"][number]["bestcurrencystate"],
+  };
 }
 
 function rpcConverter(
@@ -213,7 +217,7 @@ function market(targetOverrides: Partial<CurrencyDefinition> = {}) {
     ...targetOverrides,
   });
   const state = converter().bestcurrencystate!;
-  const reserveState = state.currencies[SOURCE];
+  const reserveState = state.currencies![SOURCE];
   const pool = converter({
     name: "Three Reserve Basket",
     parent: CHAIN,
@@ -461,6 +465,49 @@ describe("currency converter discovery", () => {
     expect(
       calls("getcurrency").filter((req) => req.params?.[0] === CONVERTER)
     ).toHaveLength(1);
+  });
+
+  test("reports missing conversion prices after refreshing a listed cache entry", async () => {
+    const destination = converter();
+    destination.bestcurrencystate = {
+      ...destination.bestcurrencystate!,
+      currencies: undefined,
+    };
+    const { client, calls } = createClient({
+      listed: [
+        {
+          currencydefinition: listed(destination).currencydefinition,
+          bestheight: 100,
+        },
+      ],
+      definitions: [destination],
+      converters: [rpcConverter(destination)],
+    });
+
+    await expect(
+      client.getCurrencyConversionPaths(currency(SOURCE), undefined, false)
+    ).rejects.toThrow(`Missing currency conversion prices for ${CONVERTER}`);
+    expect(
+      calls("getcurrency").filter((req) => req.params?.[0] === CONVERTER)
+    ).toHaveLength(1);
+  });
+
+  test("reports missing conversion prices in a supplied currency state", async () => {
+    const destination = converter();
+    destination.bestcurrencystate = {
+      ...destination.bestcurrencystate!,
+      currencies: undefined,
+    };
+    const { client, calls } = createClient({
+      converters: [rpcConverter(destination)],
+    });
+
+    await expect(
+      client.getCurrencyConversionPaths(currency(SOURCE), destination, false)
+    ).rejects.toThrow(`Missing currency conversion prices for ${CONVERTER}`);
+    expect(
+      calls("getcurrency").filter((req) => req.params?.[0] === CONVERTER)
+    ).toHaveLength(0);
   });
 
   test("reuses local converter cache entries", async () => {

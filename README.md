@@ -12,7 +12,8 @@ yarn add verusd-rpc-ts-client
 ## Primitives compatibility update
 
 This revision pins `verus-typescript-primitives` to public commit
-[`3ffa9d77a3dd98c23fe4f66cf4368946906de780`](https://github.com/VerusCoin/verus-typescript-primitives/commit/3ffa9d77a3dd98c23fe4f66cf4368946906de780).
+[`36cf60817a8ff983b3f8b30f43b3f467fc064ccc`](https://github.com/VerusCoin/verus-typescript-primitives/commit/36cf60817a8ff983b3f8b30f43b3f467fc064ccc)
+from the `identity-registration` branch, adding `getIdentityHistory`, `getCurrencyState`, and `getTxOut`.
 Keep direct primitives dependencies aligned with this revision. Its package version remains `1.0.0`.
 The client targets ES2015; the updated primitives declarations require ES2015 or later.
 
@@ -162,6 +163,20 @@ getIdentity(identityid: string): Promise<RpcRequestResult<{
 }>>
 ```
 
+#### getIdentityHistory
+
+Gets an identity's original registration and subsequent updates. `heightend` of `0` uses the chain tip; `-1` also includes mempool entries. Omitted intermediate arguments use the daemon defaults.
+
+```typescript
+getIdentityHistory(
+  nameOrAddress: string,
+  heightstart?: number,
+  heightend?: number,
+  txproofs?: boolean,
+  txproofheight?: number
+): Promise<RpcRequestResult<Primitives.GetIdentityHistoryResponse['result']>>
+```
+
 #### getIdentityContent
 
 Gets the content of an identity.
@@ -187,6 +202,18 @@ Gets information about a currency.
 getCurrency(currencyid: string): Promise<RpcRequestResult<CurrencyDefinition>>
 ```
 
+#### getCurrencyState
+
+Gets currency state at a height or over an inclusive `"start,end[,step]"` range. Omitted or nonpositive numeric heights use the tip; the string `"0"` selects genesis. Numeric heights are serialized as strings for proxy compatibility. Conversion-data ranges may append a `{ totalvolume: number }` entry to the result array.
+
+```typescript
+getCurrencyState(
+  currencynameorid: string,
+  height?: number | string,
+  conversiondatacurrency?: string
+): Promise<RpcRequestResult<Primitives.GetCurrencyStateResponse['result']>>
+```
+
 #### getInfo
 
 Gets information about the current state of the blockchain.
@@ -209,6 +236,18 @@ Gets a raw transaction by its ID.
 
 ```typescript
 getRawTransaction(txid: string, verbose?: number): Promise<RpcRequestResult<string | RawTransaction>>
+```
+
+#### getTxOut
+
+Gets an unspent transaction output, or a successful `null` result if it is spent or unavailable. `includemempool` defaults to `true`, which excludes outputs spent in the mempool.
+
+```typescript
+getTxOut(
+  txid: string,
+  n: number,
+  includemempool?: boolean
+): Promise<RpcRequestResult<Primitives.GetTxOutResponse['result']>>
 ```
 
 #### makeOffer

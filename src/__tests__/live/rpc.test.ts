@@ -160,4 +160,144 @@ describe('Makes live API Verusd RPC calls', () => {
       ).error
     ).toBe(false);
   });
+
+  describe("identity registration reads", () => {
+    const chain = "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq";
+    // VRSCTEST's root identity was registered at height 235. Its historical
+    // reservation provides a zero-value unspent output for these checks.
+    const registrationTxid = "f077b510957a4193a4790f19d4991bc9cb3dd37826691fe60c12e6a340a145b2";
+    const commitmentTxid = "2edf9c38320efb48151428b2bece7b81439f17e52d8fceefcd5b0237511c41d8";
+
+    test("getidentityhistory with default options", async () => {
+      const response = await verusd.getIdentityHistory(chain);
+
+      expect(response.error).toBeNull();
+      expect(response.result?.fullyqualifiedname).toBe("VRSCTEST@");
+      expect(response.result?.history).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          height: 235,
+          identity: expect.objectContaining({ identityaddress: chain }),
+          output: { txid: registrationTxid, voutnum: 0 },
+        }),
+      ]));
+    });
+
+    test("getidentityhistory with an explicit range and transaction proof", async () => {
+      const response = await verusd.getIdentityHistory(chain, 235, 235, true, 255);
+
+      expect(response.error).toBeNull();
+      expect(response.result?.history).toHaveLength(1);
+      expect(response.result?.history[0]).toMatchObject({
+        height: 235,
+        output: { txid: registrationTxid, voutnum: 0 },
+        proof: expect.stringMatching(/^(?:[0-9a-f]{2})+$/),
+      });
+    });
+
+    test("getidentityhistory fills omitted intermediate options", async () => {
+      const bounded = await verusd.getIdentityHistory(chain, undefined, 235);
+      const proofHeightOnly = await verusd.getIdentityHistory(
+        chain, undefined, undefined, undefined, 255
+      );
+
+      expect(bounded.error).toBeNull();
+      expect(bounded.result?.history).toHaveLength(1);
+      expect(bounded.result?.history[0].height).toBe(235);
+      expect(proofHeightOnly.error).toBeNull();
+      expect(proofHeightOnly.result?.history.length).toBeGreaterThan(0);
+      for (const entry of proofHeightOnly.result!.history) {
+        expect(entry.proof).toBeUndefined();
+      }
+    });
+
+    test("getcurrencystate distinguishes tip defaults from string zero", async () => {
+      const tip = await verusd.getBlockCount();
+      expect(tip.error).toBeNull();
+
+      for (const height of [undefined, 0]) {
+        const response = await verusd.getCurrencyState(chain, height);
+        expect(response.error).toBeNull();
+        expect(response.result).toHaveLength(1);
+        expect(response.result?.[0]).toMatchObject({
+          height: expect.any(Number),
+          currencystate: expect.objectContaining({ currencyid: chain }),
+        });
+        const state = response.result![0];
+        if (!("height" in state)) throw new Error("Expected a currency state");
+        expect(state.height).toBeGreaterThanOrEqual(tip.result!);
+      }
+
+      const genesis = await verusd.getCurrencyState(chain, "0");
+      expect(genesis.error).toBeNull();
+      expect(genesis.result).toHaveLength(1);
+      expect(genesis.result?.[0]).toMatchObject({ height: 0 });
+    });
+
+    test("getcurrencystate accepts numeric and string historical heights", async () => {
+      const numeric = await verusd.getCurrencyState(chain, 100);
+      const string = await verusd.getCurrencyState(chain, "100");
+
+      expect(numeric.error).toBeNull();
+      expect(string.error).toBeNull();
+      expect(numeric.result).toHaveLength(1);
+      expect(numeric.result?.[0]).toMatchObject({
+        height: 100,
+        currencystate: expect.objectContaining({ currencyid: chain }),
+      });
+      expect(string.result).toEqual(numeric.result);
+    });
+
+    test("getcurrencystate includes the final height in a stepped range", async () => {
+      const response = await verusd.getCurrencyState(chain, "100,103,2");
+
+      expect(response.error).toBeNull();
+      expect(response.result?.map(entry => "height" in entry ? entry.height : null))
+        .toEqual([100, 102, 103]);
+      for (const entry of response.result!) {
+        expect(entry).toMatchObject({
+          currencystate: expect.objectContaining({ currencyid: chain }),
+        });
+      }
+    });
+
+    test("getcurrencystate accepts a conversion currency with an omitted height", async () => {
+      const response = await verusd.getCurrencyState(chain, undefined, chain);
+
+      expect(response.error).toBeNull();
+      expect(response.result).toHaveLength(1);
+      expect(response.result?.[0]).toMatchObject({
+        height: expect.any(Number),
+        currencystate: expect.objectContaining({ currencyid: chain }),
+      });
+    });
+
+    test("gettxout returns an unspent zero-value reservation", async () => {
+      for (const includeMempool of [undefined, false]) {
+        const response = await verusd.getTxOut(registrationTxid, 1, includeMempool);
+
+        expect(response.error).toBeNull();
+        expect(response.result).toMatchObject({
+          bestblock: expect.stringMatching(/^[0-9a-f]{64}$/),
+          confirmations: expect.any(Number),
+          value: 0,
+          coinbase: false,
+          scriptPubKey: {
+            type: "cryptocondition",
+            hex: expect.stringMatching(/^(?:[0-9a-f]{2})+$/),
+            identityreservation: expect.objectContaining({ name: "VRSCTEST" }),
+          },
+        });
+        expect(response.result!.confirmations).toBeGreaterThan(0);
+      }
+    });
+
+    test("gettxout returns successful null for a spent output at index zero", async () => {
+      for (const includeMempool of [undefined, false]) {
+        const response = await verusd.getTxOut(commitmentTxid, 0, includeMempool);
+
+        expect(response.error).toBeNull();
+        expect(response.result).toBeNull();
+      }
+    });
+  });
 });

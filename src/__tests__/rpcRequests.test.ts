@@ -1,11 +1,12 @@
 import { VerusdRpcInterface } from "../index";
 import { RPCRequestOverride } from "../VerusdRpcInterface";
-import { RpcRequestBody } from "../types/RpcRequest";
+import { RpcRequestBody, RpcRequestResult } from "../types/RpcRequest";
 
-function createClient() {
+function createClient(response?: RpcRequestResult<unknown>) {
   const requests: RpcRequestBody<number>[] = [];
-  const rpcRequest: RPCRequestOverride = async (body) => {
+  const rpcRequest: RPCRequestOverride = async <D>(body: RpcRequestBody<number>) => {
     requests.push(body);
+    if (response) return response as RpcRequestResult<D>;
     return {
       id: body.id,
       result: null,
@@ -42,6 +43,83 @@ describe("Public RPC request contracts", () => {
       { method: "getidentitycontent", params: ["alice@"] },
       { method: "getidentitycontent", params: ["alice@", null, null, false, null, "content-key"] },
     ]);
+  });
+
+  test("getIdentityHistory preserves optional positions with proxy-compatible defaults", async () => {
+    const { client, requests } = createClient();
+
+    await client.getIdentityHistory("alice@");
+    await client.getIdentityHistory("alice@", undefined, 75);
+    await client.getIdentityHistory("alice@", 0, -1, false, 0);
+    await client.getIdentityHistory("alice@", undefined, undefined, undefined, 100);
+
+    expect(requests.map(({ method, params }) => ({ method, params }))).toStrictEqual([
+      { method: "getidentityhistory", params: ["alice@"] },
+      { method: "getidentityhistory", params: ["alice@", 0, 75] },
+      { method: "getidentityhistory", params: ["alice@", 0, -1, false, 0] },
+      { method: "getidentityhistory", params: ["alice@", 0, 0, false, 100] },
+    ]);
+  });
+
+  test("getCurrencyState forwards historical selectors and defaults an omitted conversion height", async () => {
+    const { client, requests } = createClient();
+
+    await client.getCurrencyState("basket");
+    await client.getCurrencyState("basket", 100);
+    await client.getCurrencyState("basket", "100,200,10", "VRSC");
+    await client.getCurrencyState("basket", undefined, "VRSC");
+
+    expect(requests.map(({ method, params }) => ({ method, params }))).toStrictEqual([
+      { method: "getcurrencystate", params: ["basket"] },
+      { method: "getcurrencystate", params: ["basket", "100"] },
+      { method: "getcurrencystate", params: ["basket", "100,200,10", "VRSC"] },
+      { method: "getcurrencystate", params: ["basket", "", "VRSC"] },
+    ]);
+  });
+
+  test("getCurrencyState distinguishes numeric zero from an explicit string zero height", async () => {
+    const { client, requests } = createClient();
+
+    await client.getCurrencyState("basket", 0);
+    await client.getCurrencyState("basket", "0");
+
+    expect(requests.map(({ params }) => params)).toStrictEqual([
+      ["basket", ""],
+      ["basket", "0"],
+    ]);
+  });
+
+  test("getTxOut preserves output zero and an explicit false mempool flag", async () => {
+    const { client, requests } = createClient();
+    const txid = "ab".repeat(32);
+
+    await client.getTxOut(txid, 0);
+    await client.getTxOut(txid, 0, false);
+
+    expect(requests).toStrictEqual([
+      { jsonrpc: "1.0", id: 0, method: "gettxout", params: [txid, 0] },
+      { jsonrpc: "1.0", id: 1, method: "gettxout", params: [txid, 0, false] },
+    ]);
+  });
+
+  test("getTxOut returns a successful null result for an unavailable output", async () => {
+    const response = { id: 0, result: null, error: null };
+    const { client } = createClient(response);
+
+    await expect(client.getTxOut("ab".repeat(32), 0)).resolves.toBe(response);
+  });
+
+  test("registration reads preserve RPC errors", async () => {
+    const response = {
+      id: 0,
+      result: null,
+      error: { code: -5, message: "Lookup unavailable", data: { retry: false } },
+    };
+    const { client } = createClient(response);
+
+    await expect(client.getIdentityHistory("alice@")).resolves.toBe(response);
+    await expect(client.getCurrencyState("basket")).resolves.toBe(response);
+    await expect(client.getTxOut("ab".repeat(32), 0)).resolves.toBe(response);
   });
 
   test("signRawTransaction distinguishes omitted private keys from an explicit empty list", async () => {
