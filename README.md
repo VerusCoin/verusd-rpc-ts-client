@@ -12,9 +12,30 @@ yarn add verusd-rpc-ts-client
 ## Primitives compatibility update
 
 This revision pins `verus-typescript-primitives` to public commit
-[`3ffa9d77a3dd98c23fe4f66cf4368946906de780`](https://github.com/VerusCoin/verus-typescript-primitives/commit/3ffa9d77a3dd98c23fe4f66cf4368946906de780).
+[`f7de920e32e8d4778356c18ce8bb6d3a22ec72a3`](https://github.com/VerusCoin/verus-typescript-primitives/commit/f7de920e32e8d4778356c18ce8bb6d3a22ec72a3)
+from `master`, including the merged identity-registration and MMR/VDXF compatibility updates.
 Keep direct primitives dependencies aligned with this revision. Its package version remains `1.0.0`.
 The client targets ES2015; the updated primitives declarations require ES2015 or later.
+
+### Changes since the previous pin (`36cf608`)
+
+The RPC request/response definitions and client method signatures are unchanged.
+The public `Primitives` export gains `hashData`, `getMMRRoot`, `NotaryEvidence`,
+and `createNotaryEvidenceOutputs`, but also exposes these upstream breaking changes:
+
+- **Signing helpers:** `PartialMMRData` / `PartialSignData` CLI conversion rejects bare-string MMR items, `serializedbase64`, `priormmr`, malformed encodings, and metadata it cannot preserve. Each MMR item must have one supported data key; supplied salts and hashes must be exactly 32 bytes. Use `serializedhex` for binary data. `client.signData()` remains a raw transport and does not apply these helper checks; forwarding base64 successfully does not establish daemon support.
+- **Descriptor and VDXF JSON:** `fromJson` / `toJson` now use the supported lossless daemon representation; `fromDaemonJson` / `toDaemonJson` are aliases. Omitted descriptor versions and MMR hash tags default to zero, while native constructors retain their own defaults. Use `{ message: text }` for raw text and supply versions/hash tags explicitly when needed. Metadata, key lengths, FQN entry ordering/uniqueness, and tagged byte-vector output are validated more strictly. Keep values that JSON cannot preserve in binary form.
+- **MMR ownership and types:** range layers and view caches are private; `vSize` / `_leafLength` are removed. Use public methods such as `size()`, `getNode()` and `getPeaks()`. Returned nodes/hashes are copies, so mutating them no longer changes the tree. Custom node subclasses with state that the default copy cannot preserve must override `clone()`.
+- **Proof and hash-vector handling:** `safeCheck()` returns a zero hash for missing positions or equal right siblings and rejects invalid input widths/types. Validate against an independently trusted nonzero root. `decodeHashVector()` now permits trailing bytes; use `decodeHashVector(true)` when an exact tagged vector is required.
+- **Reference JSON:** zero optional system IDs and identity-reference hashes are omitted, and `PBaaSEvidenceRefJson.systemid` is now optional. URL-reference JSON accepts only version 1; use binary serialization for version 2.
+
+See the pinned upstream [MMR compatibility notes](https://github.com/VerusCoin/verus-typescript-primitives/blob/f7de920e32e8d4778356c18ce8bb6d3a22ec72a3/README.md#mmr-compatibility-and-limits)
+for the supported formats and migration details.
+
+### Earlier compatibility changes
+
+The previous pin added `getIdentityHistory`, `getCurrencyState`, and `getTxOut`.
+Applications upgrading from older client revisions should also account for these changes:
 
 - Address UTXO and delta results can be arrays or chain-info objects. UTXO `isspendable` is boolean and `blocktime` is optional. Mempool entries have `timestamp` and `spending`, without confirmed-block fields.
 - Currency definitions and blockchain information have optional fields. Offers can return `false`, and send-currency templates can contain `hextx` or `hextxwithoutz`. Use the response types below and narrow unions before accessing their fields.
