@@ -9,25 +9,31 @@ import {
   GetBlockRequest,
   GetBlockCountRequest,
   GetIdentityRequest,
+  GetIdentityHistoryRequest,
   GetIdentityContentRequest,
   GetIdentitiesWithAddressRequest,
   GetInfoRequest,
   GetOffersRequest,
   GetRawTransactionRequest,
+  GetTxOutRequest,
   MakeOfferRequest,
   SendRawTransactionRequest,
   GetCurrencyRequest,
+  GetCurrencyStateRequest,
   GetAddressBalanceResponse,
   GetAddressDeltasResponse,
   GetAddressUtxosResponse,
   GetBlockResponse,
   GetBlockCountResponse,
   GetIdentityResponse,
+  GetIdentityHistoryResponse,
   GetIdentitiesWithAddressResponse,
   GetCurrencyResponse,
+  GetCurrencyStateResponse,
   GetInfoResponse,
   GetOffersResponse,
   GetRawTransactionResponse,
+  GetTxOutResponse,
   MakeOfferResponse,
   GetAddressMempoolRequest,
   GetAddressMempoolResponse,
@@ -273,6 +279,12 @@ class VerusdRpcInterface {
     return this.request<GetIdentityResponse["result"]>(new GetIdentityRequest(this.chain, ...args));
   }
 
+  getIdentityHistory(...args: ConstructorParametersAfterFirst<typeof GetIdentityHistoryRequest>) {
+    return this.request<GetIdentityHistoryResponse["result"]>(
+      new GetIdentityHistoryRequest(this.chain, ...args)
+    );
+  }
+
   getIdentityContent(...args: ConstructorParametersAfterFirst<typeof GetIdentityContentRequest>) {
     return this.request<GetIdentityResponse["result"]>(new GetIdentityContentRequest(this.chain, ...args));
   }
@@ -287,6 +299,12 @@ class VerusdRpcInterface {
     return this.request<GetCurrencyResponse["result"]>(new GetCurrencyRequest(this.chain, ...args));
   }
 
+  getCurrencyState(...args: ConstructorParametersAfterFirst<typeof GetCurrencyStateRequest>) {
+    return this.request<GetCurrencyStateResponse["result"]>(
+      new GetCurrencyStateRequest(this.chain, ...args)
+    );
+  }
+
   getInfo(...args: ConstructorParametersAfterFirst<typeof GetInfoRequest>) {
     return this.request<GetInfoResponse["result"]>(new GetInfoRequest(this.chain, ...args));
   }
@@ -299,6 +317,10 @@ class VerusdRpcInterface {
     return this.request<GetRawTransactionResponse["result"]>(
       new GetRawTransactionRequest(this.chain, ...args)
     );
+  }
+
+  getTxOut(...args: ConstructorParametersAfterFirst<typeof GetTxOutRequest>) {
+    return this.request<GetTxOutResponse["result"]>(new GetTxOutRequest(this.chain, ...args));
   }
 
   makeOffer(...args: ConstructorParametersAfterFirst<typeof MakeOfferRequest>) {
@@ -383,33 +405,35 @@ class VerusdRpcInterface {
   }
 
   private async getCachedCurrencyState(definition: CurrencyDefinition) {
-    if (definition.bestcurrencystate) {
-      return { definition, state: definition.bestcurrencystate };
+    let state = definition.bestcurrencystate;
+
+    if (!state) {
+      const cachedDefinition = this.currencycache.get(definition.currencyid)?.result;
+      definition = cachedDefinition || definition;
+      // List pricing state does not necessarily belong to the enriched definition's height.
+      state = cachedDefinition?.bestcurrencystate || this.listcurrencystatescache.get(definition.currencyid);
     }
 
-    const cachedDefinition = this.currencycache.get(definition.currencyid)?.result;
-    if (cachedDefinition?.bestcurrencystate) {
-      return { definition: cachedDefinition, state: cachedDefinition.bestcurrencystate };
+    if (!state) {
+      const response = await this.request<GetCurrencyResponse["result"]>(
+        new GetCurrencyRequest(this.chain, definition.currencyid)
+      );
+      if (response.error) throw new Error(response.error.message);
+
+      this.currencycache.set(definition.currencyid, response);
+      definition = response.result;
+      state = definition.bestcurrencystate;
     }
 
-    // List pricing state does not necessarily belong to the enriched definition's height.
-    const listedState = this.listcurrencystatescache.get(definition.currencyid);
-    if (listedState) {
-      return { definition: cachedDefinition || definition, state: listedState };
-    }
-
-    const response = await this.request<GetCurrencyResponse["result"]>(
-      new GetCurrencyRequest(this.chain, definition.currencyid)
-    );
-    if (response.error) throw new Error(response.error.message);
-
-    this.currencycache.set(definition.currencyid, response);
-
-    if (!response.result.bestcurrencystate) {
+    if (!state) {
       throw new Error(`Missing currency state for ${definition.currencyid}`);
     }
 
-    return { definition: response.result, state: response.result.bestcurrencystate };
+    if (!state.currencies) {
+      throw new Error(`Missing currency conversion prices for ${definition.currencyid}`);
+    }
+
+    return { definition, state: { ...state, currencies: state.currencies } };
   }
 
   private getConverterExportCurrencyId(definition: CurrencyDefinition): string {

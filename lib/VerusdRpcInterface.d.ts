@@ -1,5 +1,5 @@
 import { AxiosInstance, AxiosRequestConfig } from "axios";
-import { GetAddressBalanceRequest, ApiRequest, GetAddressDeltasRequest, GetAddressUtxosRequest, GetBlockRequest, GetBlockCountRequest, GetIdentityRequest, GetIdentityContentRequest, GetIdentitiesWithAddressRequest, GetInfoRequest, GetOffersRequest, GetRawTransactionRequest, MakeOfferRequest, SendRawTransactionRequest, GetCurrencyRequest, GetAddressMempoolRequest, GetVdxfIdRequest, FundRawTransactionRequest, SignRawTransactionRequest, SendCurrencyRequest, GetCurrencyConvertersRequest, CurrencyDefinition, ApiResponse, ListCurrenciesRequest, EstimateConversionRequest, ZGetOperationStatusRequest, SignDataRequest, UpdateIdentityRequest } from "verus-typescript-primitives";
+import { GetAddressBalanceRequest, ApiRequest, GetAddressDeltasRequest, GetAddressUtxosRequest, GetBlockRequest, GetBlockCountRequest, GetIdentityRequest, GetIdentityHistoryRequest, GetIdentityContentRequest, GetIdentitiesWithAddressRequest, GetInfoRequest, GetOffersRequest, GetRawTransactionRequest, GetTxOutRequest, MakeOfferRequest, SendRawTransactionRequest, GetCurrencyRequest, GetCurrencyStateRequest, GetAddressMempoolRequest, GetVdxfIdRequest, FundRawTransactionRequest, SignRawTransactionRequest, SendCurrencyRequest, GetCurrencyConvertersRequest, CurrencyDefinition, ApiResponse, ListCurrenciesRequest, EstimateConversionRequest, ZGetOperationStatusRequest, SignDataRequest, UpdateIdentityRequest } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst } from "./types/ConstructorParametersAfterFirst";
 import { RpcRequestBody, RpcRequestResult } from "./types/RpcRequest";
 type Convertable = {
@@ -199,6 +199,16 @@ declare class VerusdRpcInterface {
         vout: number;
         proof?: string;
     }>>;
+    getIdentityHistory(...args: ConstructorParametersAfterFirst<typeof GetIdentityHistoryRequest>): Promise<RpcRequestResult<{
+        fullyqualifiedname: string;
+        status: string;
+        canspendfor: boolean;
+        cansignfor: boolean;
+        blockheight: number;
+        txid: string;
+        vout: number;
+        history: import("verus-typescript-primitives").IdentityHistoryEntry[];
+    }>>;
     getIdentityContent(...args: ConstructorParametersAfterFirst<typeof GetIdentityContentRequest>): Promise<RpcRequestResult<{
         identity: import("verus-typescript-primitives").IdentityDefinition;
         status: string;
@@ -216,6 +226,7 @@ declare class VerusdRpcInterface {
         };
     })[]>>;
     getCurrency(...args: ConstructorParametersAfterFirst<typeof GetCurrencyRequest>): Promise<RpcRequestResult<CurrencyDefinition>>;
+    getCurrencyState(...args: ConstructorParametersAfterFirst<typeof GetCurrencyStateRequest>): Promise<RpcRequestResult<import("verus-typescript-primitives").CurrencyStateResponseEntry[]>>;
     getInfo(...args: ConstructorParametersAfterFirst<typeof GetInfoRequest>): Promise<RpcRequestResult<{
         version: number;
         protocolversion: number;
@@ -262,6 +273,7 @@ declare class VerusdRpcInterface {
     }>>;
     getOffers(...args: ConstructorParametersAfterFirst<typeof GetOffersRequest>): Promise<RpcRequestResult<false | import("verus-typescript-primitives/dist/offers/OfferList").OfferList>>;
     getRawTransaction(...args: ConstructorParametersAfterFirst<typeof GetRawTransactionRequest>): Promise<RpcRequestResult<string | import("verus-typescript-primitives/dist/transaction/RawTransaction").RawTransaction>>;
+    getTxOut(...args: ConstructorParametersAfterFirst<typeof GetTxOutRequest>): Promise<RpcRequestResult<import("verus-typescript-primitives").UnspentTransactionOutput | null>>;
     makeOffer(...args: ConstructorParametersAfterFirst<typeof MakeOfferRequest>): Promise<RpcRequestResult<{
         txid?: string;
         hex?: string;
