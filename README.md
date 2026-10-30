@@ -12,15 +12,23 @@ yarn add verusd-rpc-ts-client
 ## Primitives compatibility update
 
 This revision pins `verus-typescript-primitives` to public commit
-[`f7de920e32e8d4778356c18ce8bb6d3a22ec72a3`](https://github.com/VerusCoin/verus-typescript-primitives/commit/f7de920e32e8d4778356c18ce8bb6d3a22ec72a3)
-from `master`, including the merged identity-registration and MMR/VDXF compatibility updates.
+[`cfe8c45e43ac7846d73083501aa42665ec9f85d9`](https://github.com/VerusCoin/verus-typescript-primitives/commit/cfe8c45e43ac7846d73083501aa42665ec9f85d9)
+from `master`, including tagged invoice support and the earlier identity-registration and MMR/VDXF compatibility updates.
 Keep direct primitives dependencies aligned with this revision. Its package version remains `1.0.0`.
 The client targets ES2015; the updated primitives declarations require ES2015 or later.
 
-### Changes since the previous pin (`36cf608`)
+### Changes since the previous pin (`f7de920`)
 
 The RPC request/response definitions and client method signatures are unchanged.
-The public `Primitives` export gains `hashData`, `getMMRRoot`, `NotaryEvidence`,
+The public `Primitives` export includes these tagged invoice updates:
+
+- **Tagged VerusPay invoices:** JSON parsing now restores tags as `CompactXAddressObject` instances with the supplied version, root-system name, and optional namespace. `CompactXAddressObject.fromCompactAddressObjectJson()` now requires a `CompactAddressObjectJson` argument instead of `any`.
+- **Data-key tags:** `CompactXAddressObject.fromDataKey()` accepts a string root-system name and defaults to `"VRSC"`, allowing `"VRSCTEST"` as well.
+- **Tag validation:** `CompactXAddressObject.isValid()` requires compact version 1, an FQN or X-address type, and a valid resolved X-address. Tagged invoices with missing or invalid tags fail validation and throw during binary/JSON parsing and serialization. Untagged invoices ignore unused tags.
+
+### Earlier MMR/VDXF compatibility changes (`36cf608` to `f7de920`)
+
+The public `Primitives` export gained `hashData`, `getMMRRoot`, `NotaryEvidence`,
 and `createNotaryEvidenceOutputs`, but also exposes these upstream breaking changes:
 
 - **Signing helpers:** `PartialMMRData` / `PartialSignData` CLI conversion rejects bare-string MMR items, `serializedbase64`, `priormmr`, malformed encodings, and metadata it cannot preserve. Each MMR item must have one supported data key; supplied salts and hashes must be exactly 32 bytes. Use `serializedhex` for binary data. `client.signData()` remains a raw transport and does not apply these helper checks; forwarding base64 successfully does not establish daemon support.
