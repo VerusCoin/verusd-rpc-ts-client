@@ -73,6 +73,42 @@ const client = new VerusdRpcInterface(
 );
 ```
 
+### Batched requests
+
+Pass an array of primitive request objects to `request` to send one HTTP batch:
+
+```typescript
+const responses = await client.request([
+  new Primitives.GetInfoRequest(client.chain),
+  new Primitives.GetBlockCountRequest(client.chain),
+]);
+
+if (!Array.isArray(responses)) {
+  throw new Error(responses.error.message); // The entire batch was rejected.
+}
+
+for (const response of responses) {
+  if (response.error) console.error(response.error.message);
+  else console.log(response.result);
+}
+```
+
+This requires a server with batching enabled. The batching RPC proxy accepts
+1–20 requests and returns responses in input order; match them by position,
+since the proxy does not return request IDs. A one-item batch still returns an
+array. Individual errors remain in their corresponding slots; whole-batch
+errors (including disabled batching or invalid batch size) return one error
+object. Responses are passed through as with single requests.
+
+The client signs the complete array once when using API authentication. It does
+not split or retry batches. Batches are not transactions, and an item error does
+not roll back other items.
+
+Existing custom `rpcRequest` callbacks remain unchanged. To batch through a
+custom transport, also provide an `rpcBatchRequest` callback as the sixth
+constructor argument; it receives the entire array of serialized request bodies.
+An array call with only a single-request override rejects before transport.
+
 ## API Reference
 
 ### Constructor
@@ -82,11 +118,26 @@ constructor(
   chain: string,
   baseURL: string,
   config?: AxiosRequestConfig,
-  rpcRequest?: <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>
+  rpcRequest?: RPCRequestOverride,
+  APIAuth?: APIAuthData,
+  rpcBatchRequest?: RPCBatchRequestOverride
 )
 ```
 
 ### Public Methods
+
+#### request
+
+Sends a primitive request or an array of primitive requests. For mixed batches,
+`D` can be a union of the expected result types.
+
+```typescript
+request<D>(req: Primitives.ApiRequest): Promise<RpcRequestResult<D>>;
+request<D>(req: Primitives.ApiRequest[]): Promise<RpcBatchRequestResult<D>>;
+
+type RpcBatchRequestResult<D> = RpcRequestResult<D>[] | RpcRequestResultError;
+type RPCBatchRequestOverride = <D>(req: RpcRequestBody<number>[]) => Promise<RpcBatchRequestResult<D>>;
+```
 
 #### getAddressBalance
 

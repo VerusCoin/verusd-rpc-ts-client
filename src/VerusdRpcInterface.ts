@@ -61,7 +61,7 @@ import {
   UpdateIdentityResponse
 } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst, RemoveFirstFromTuple } from "./types/ConstructorParametersAfterFirst";
-import { RpcRequestBody, RpcRequestResult, RpcRequestResultError, RpcRequestResultSuccess } from "./types/RpcRequest";
+import { RpcBatchRequestResult, RpcRequestBody, RpcRequestResult, RpcRequestResultError, RpcRequestResultSuccess } from "./types/RpcRequest";
 import { IS_FRACTIONAL_FLAG, IS_GATEWAY_CONVERTER_FLAG, IS_GATEWAY_FLAG, checkFlag } from "./utils/flags";
 import crypto from "crypto";
 
@@ -116,6 +116,7 @@ function normalizeConverterCandidate(record: GetCurrencyConvertersResponse["resu
 
 export type APIAuthData = { key: string, id: string };
 export type RPCRequestOverride = <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>;
+export type RPCBatchRequestOverride = <D>(req: RpcRequestBody<number>[]) => Promise<RpcBatchRequestResult<D>>;
 
 class VerusdRpcInterface {
   instance?: AxiosInstance;
@@ -126,6 +127,7 @@ class VerusdRpcInterface {
   static VRPC_API_VERSION_CURRENT = "2";
 
   rpcRequestOverride?: RPCRequestOverride;
+  rpcBatchRequestOverride?: RPCBatchRequestOverride;
 
   private currencycache: Map<string, RpcRequestResultSuccess<GetCurrencyResponse["result"]>> = new Map();
   private converterscache: Map<string, RpcRequestResultSuccess<ConverterCandidate[]>> = new Map();
@@ -138,7 +140,8 @@ class VerusdRpcInterface {
     baseURL: string, 
     config?: AxiosRequestConfig, 
     rpcRequest?: RPCRequestOverride,
-    APIAuth?: APIAuthData
+    APIAuth?: APIAuthData,
+    rpcBatchRequest?: RPCBatchRequestOverride
   ) {
     if (rpcRequest) this.rpcRequestOverride = rpcRequest;
     else {
@@ -154,20 +157,27 @@ class VerusdRpcInterface {
     this.currid = 0;
     this.chain = chain;
     this.APIAuth = APIAuth;
+    this.rpcBatchRequestOverride = rpcBatchRequest;
   }
 
-  async request<D>(req: ApiRequest): Promise<RpcRequestResult<D>> {
-    const id = this.currid;
-    this.currid += 1;
-
-    const body: RpcRequestBody<number> = {
+  async request<D>(req: ApiRequest): Promise<RpcRequestResult<D>>;
+  async request<D>(req: ApiRequest[]): Promise<RpcBatchRequestResult<D>>;
+  async request<D>(req: ApiRequest | ApiRequest[]): Promise<RpcRequestResult<D> | RpcBatchRequestResult<D>> {
+    const createBody = (request: ApiRequest): RpcRequestBody<number> => ({
       jsonrpc: "1.0",
-      id,
-      params: req.getParams(),
-      method: req.cmd,
-    };
+      id: this.currid++,
+      params: request.getParams(),
+      method: request.cmd,
+    });
+    const body = Array.isArray(req) ? req.map(createBody) : createBody(req);
+    const id = Array.isArray(body) ? null : body.id;
 
-    if (this.rpcRequestOverride) return this.rpcRequestOverride(body);
+    if (Array.isArray(body)) {
+      if (this.rpcBatchRequestOverride) return this.rpcBatchRequestOverride<D>(body);
+      if (this.rpcRequestOverride) {
+        throw new Error("Batch requests require an rpcBatchRequest override when using an rpcRequest override");
+      }
+    } else if (this.rpcRequestOverride) return this.rpcRequestOverride<D>(body);
  
     try {
       let res: AxiosResponse;
@@ -208,7 +218,7 @@ class VerusdRpcInterface {
 
         return error;
       } else {
-        const response: RpcRequestResult<D> = res.data as RpcRequestResult<D>;
+        const response = res.data as RpcRequestResult<D> | RpcBatchRequestResult<D>;
 
         return response;
       }
@@ -226,7 +236,7 @@ class VerusdRpcInterface {
     }
   }
 
-  private getAuthToken(time: number, body: RpcRequestBody<number>, salt: Buffer): string {
+  private getAuthToken(time: number, body: RpcRequestBody<number> | RpcRequestBody<number>[], salt: Buffer): string {
     const hash = blake2b(64);
 
     hash.update(Buffer.from(time.toString(), 'utf-8'));

@@ -21,3 +21,4 @@ export interface RpcRequestResultError<T = any> {
     error: RpcError;
 }
 export type RpcRequestResult<D = ApiPrimitive, T = any> = RpcRequestResultSuccess<D, T> | RpcRequestResultError<T>;
+export type RpcBatchRequestResult<D = ApiPrimitive> = RpcRequestResult<D>[] | RpcRequestResultError;

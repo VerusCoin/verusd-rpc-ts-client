@@ -1,7 +1,7 @@
 import { AxiosInstance, AxiosRequestConfig } from "axios";
 import { GetAddressBalanceRequest, ApiRequest, GetAddressDeltasRequest, GetAddressUtxosRequest, GetBlockRequest, GetBlockCountRequest, GetIdentityRequest, GetIdentityHistoryRequest, GetIdentityContentRequest, GetIdentitiesWithAddressRequest, GetInfoRequest, GetOffersRequest, GetRawTransactionRequest, GetTxOutRequest, MakeOfferRequest, SendRawTransactionRequest, GetCurrencyRequest, GetCurrencyStateRequest, GetAddressMempoolRequest, GetVdxfIdRequest, FundRawTransactionRequest, SignRawTransactionRequest, SendCurrencyRequest, GetCurrencyConvertersRequest, CurrencyDefinition, ApiResponse, ListCurrenciesRequest, EstimateConversionRequest, ZGetOperationStatusRequest, SignDataRequest, UpdateIdentityRequest } from "verus-typescript-primitives";
 import { ConstructorParametersAfterFirst } from "./types/ConstructorParametersAfterFirst";
-import { RpcRequestBody, RpcRequestResult } from "./types/RpcRequest";
+import { RpcBatchRequestResult, RpcRequestBody, RpcRequestResult } from "./types/RpcRequest";
 type Convertable = {
     via?: CurrencyDefinition;
     destination: CurrencyDefinition;
@@ -19,6 +19,7 @@ export type APIAuthData = {
     id: string;
 };
 export type RPCRequestOverride = <D>(req: RpcRequestBody<number>) => Promise<RpcRequestResult<D>>;
+export type RPCBatchRequestOverride = <D>(req: RpcRequestBody<number>[]) => Promise<RpcBatchRequestResult<D>>;
 declare class VerusdRpcInterface {
     instance?: AxiosInstance;
     currid: number;
@@ -26,13 +27,15 @@ declare class VerusdRpcInterface {
     APIAuth?: APIAuthData;
     static VRPC_API_VERSION_CURRENT: string;
     rpcRequestOverride?: RPCRequestOverride;
+    rpcBatchRequestOverride?: RPCBatchRequestOverride;
     private currencycache;
     private converterscache;
     private listcurrenciescache;
     private listcurrencystatescache;
     private infocache;
-    constructor(chain: string, baseURL: string, config?: AxiosRequestConfig, rpcRequest?: RPCRequestOverride, APIAuth?: APIAuthData);
+    constructor(chain: string, baseURL: string, config?: AxiosRequestConfig, rpcRequest?: RPCRequestOverride, APIAuth?: APIAuthData, rpcBatchRequest?: RPCBatchRequestOverride);
     request<D>(req: ApiRequest): Promise<RpcRequestResult<D>>;
+    request<D>(req: ApiRequest[]): Promise<RpcBatchRequestResult<D>>;
     private getAuthToken;
     getAddressBalance(...args: ConstructorParametersAfterFirst<typeof GetAddressBalanceRequest>): Promise<RpcRequestResult<{
         balance: number;
