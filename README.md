@@ -12,12 +12,24 @@ yarn add verusd-rpc-ts-client
 ## Primitives compatibility update
 
 This revision pins `verus-typescript-primitives` to public commit
-[`cfe8c45e43ac7846d73083501aa42665ec9f85d9`](https://github.com/VerusCoin/verus-typescript-primitives/commit/cfe8c45e43ac7846d73083501aa42665ec9f85d9)
-from `master`, including tagged invoice support and the earlier identity-registration and MMR/VDXF compatibility updates.
+[`d5e3068021cfa83e3aae489403f4d63aad0c1a6c`](https://github.com/VerusCoin/verus-typescript-primitives/commit/d5e3068021cfa83e3aae489403f4d63aad0c1a6c)
+from `master`, including app-encryption scope and secondary derivation updates, tagged invoice support, and the earlier identity-registration and MMR/VDXF compatibility updates.
 Keep direct primitives dependencies aligned with this revision. Its package version remains `1.0.0`.
 The client targets ES2015; the updated primitives declarations require ES2015 or later.
 
-### Changes since the previous pin (`f7de920`)
+### Changes since the previous pin (`cfe8c45`)
+
+The RPC request/response definitions and client method signatures are unchanged.
+The public `Primitives` export exposes these upstream app-encryption compatibility changes:
+
+- **Envelope scope rename:** `GenericEnvelope`, `GenericRequest`, and `GenericResponse` now use `appOrDelegatorID` in constructors and JSON, with `hasAppOrDelegatorID()`, `setHasAppOrDelegatorID()`, and `FLAG_HAS_APP_OR_DELEGATOR_ID`. The previous `appOrDelegatedID` names have no legacy aliases.
+- **Secondary derivation:** `AppEncryptionRequestDetails` adds `secondaryDerivationNumber` (`secondaryderivationnumber` in JSON), defaulting to zero. When `derivationID` is present, its wire encoding now includes this number as a VarInt immediately after the ID and before any `requestID`, even when zero. There is no legacy binary decoding path; migrate affected stored requests and signatures.
+- **App authorization:** wallets must verify request signatures and authorize an explicit app scope before deriving channel keys. Serialization and `isValid()` do not perform these checks. An optional `derivationID` selects a second derivation within that scope; responses contain only the final channel address and keys.
+
+See the pinned upstream [app-encryption request notes](https://github.com/VerusCoin/verus-typescript-primitives/blob/d5e3068021cfa83e3aae489403f4d63aad0c1a6c/README.md#app-encryption-requests)
+for authorization and derivation requirements.
+
+### Earlier tagged invoice changes (`f7de920` to `cfe8c45`)
 
 The RPC request/response definitions and client method signatures are unchanged.
 The public `Primitives` export includes these tagged invoice updates:
